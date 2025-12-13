@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  bot:
+    # Build the image from the Dockerfile in the current directory
+    # 從當前目錄的 Dockerfile 建置映像檔
+    build: .
+
+    # Mount the current directory to /app in the container for live code updates
+    # 將當前目錄掛載到容器內的 /app 以便即時更新代碼
+    volumes:
+      - .:/app
+
+    # Environment variables for the bot
+    # Bot 的環境變數
+    environment:
+      # Use host.docker.internal to access localhost of the host machine
+      # 使用 host.docker.internal 來存取主機的 localhost
+      - ADB_HOST=host.docker.internal
+      # Default port for BlueStacks ADB
+      # BlueStacks ADB 的預設連接埠 (通常是 5555)
+      - ADB_PORT=5555
+      # Set Timezone to sync with host (Taiwan)
+      - TZ=Asia/Taipei
+
+    # Map port 5000 for Web UI
+    # 對應 Web UI 的 5000 連接埠
+    ports:
+      - "5000:5000"
+
+    # Run the Flask app instead of the script directly
+    # 執行 Flask 應用程式而非直接執行腳本
+    command: python app.py
+
+    # Extra hosts configuration to allow container to see host machine
+    # 額外的主機配置，允許容器看見宿主機
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

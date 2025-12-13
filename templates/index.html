@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueStacks 腳本編輯器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-add {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-run {
+            background-color: #2196F3;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+
+        .btn-stop {
+            background-color: #f44336;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+
+        .btn-capture {
+            background-color: #607d8b;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 1.2em;
+            padding: 8px;
+            /* Maintain existing padding preference */
+        }
+
+        .script-list {
+            list-style: none;
+            padding: 10px;
+            border: 2px dashed #ddd;
+            min-height: 100px;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+
+        .script-item {
+            background: white;
+            border: 1px solid #ccc;
+            margin-bottom: 5px;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            cursor: grab;
+        }
+
+        /* Nested Block Styles */
+        .block-container {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            display: block !important;
+            /* Override flex from script-item if reused */
+            padding: 0;
+        }
+
+        .block-header {
+            padding: 10px;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+            font-weight: bold;
+            color: white;
+        }
+
+        .block-body {
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .nested-list {
+            min-height: 50px;
+            border: 2px dashed rgba(0, 0, 0, 0.1);
+            padding: 5px;
+            list-style: none;
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .item-details {
+            flex-grow: 1;
+        }
+
+        .item-remove {
+            background: #ff5252;
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.8em;
+            border-radius: 4px;
+        }
+
+        input {
+            padding: 5px;
+            margin: 0 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            width: 60px;
+            vertical-align: middle;
+        }
+
+        select {
+            padding: 5px;
+            margin: 0 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            vertical-align: middle;
+            height: 30px;
+            /* Force height for alignment */
+        }
+
+        input.long {
+            width: 150px;
+        }
+    </style>
+</head>
+
+<body>
+    <style>
+        /* New Layout Styles */
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            /* Prevent body scroll */
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr 350px;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+            color: #444;
+        }
+
+        .panel-content {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        /* Toolbox Buttons Column */
+        .toolbox-btn {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toolbox-btn:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+
+        /* Middle Canvas */
+        .script-list {
+            min-height: 100%;
+            padding-bottom: 50px;
+            /* Space for drag */
+        }
+
+        /* Right Monitor */
+        .monitor-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Script Manager */
+        .script-manager {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .script-select-row {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+
+        .script-select-row select {
+            flex-grow: 1;
+            padding: 5px;
+        }
+    </style>
+    </head>
+
+    <body>
+        <div class="main-layout">
+            <!-- LEFT PANEL: Toolbox -->
+            <div class="panel">
+                <div class="panel-header">工具箱 (Toolbox)</div>
+                <div class="panel-content">
+                    <button class="toolbox-btn" onclick="addClick()" style="border-left: 5px solid #4CAF50;">+ 點擊
+                        (Click)</button>
+                    <button class="toolbox-btn" onclick="addSwipe()" style="border-left: 5px solid #2196F3;">+ 滑動
+                        (Swipe)</button>
+                    <button class="toolbox-btn" onclick="addWait()" style="border-left: 5px solid #FF9800;">+ 等待
+                        (Wait)</button>
+                    <button class="toolbox-btn" onclick="addFindClick()" style="border-left: 5px solid #9C27B0;">+ 找圖點擊
+                        (Find & Click)</button>
+                    <hr>
+
+                    <!-- Loop Category -->
+                    <button class="toolbox-btn" onclick="toggleLoopMenu()"
+                        style="background-color: #ede7f6; border-left: 5px solid #673AB7; color: #673AB7; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                        <span>迴圈類別 (Loop)</span>
+                        <span id="loopMenuArrow">▼</span>
+                    </button>
+                    <div id="loopMenu"
+                        style="display: none; padding-left: 10px; border-left: 2px solid #ddd; margin-bottom: 10px;">
+                        <button class="toolbox-btn" onclick="addLoopBlock()" style="font-size: 0.9em;">+ 新增迴圈 (New
+                            Loop)</button>
+                        <button class="toolbox-btn" onclick="addLoopBreak()"
+                            style="font-size: 0.9em; background-color: #ffeba0; color: #795548;">+ 停止迴圈 (Stop
+                            Loop)</button>
+                    </div>
+
+                    <button class="toolbox-btn" onclick="addIfBlock()"
+                        style="background-color: #e0f2f1; border-left: 5px solid #009688; color: #009688; font-weight: bold;">+
+                        判斷區塊 (If)</button>
+
+                    <button class="toolbox-btn" onclick="addRunScript()"
+                        style="background-color: #fce4ec; border-left: 5px solid #E91E63; color: #E91E63; font-weight: bold;">+
+                        其他腳本 (Script)</button>
+                </div>
+            </div>
+
+            <!-- CENTER PANEL: Canvas -->
+            <div class="panel">
+                <div class="panel-header">
+                    腳本畫布 (Builder)
+                    <button onclick="clearScript()"
+                        style="float: right; font-size: 0.6em; background: #ff5252; color: white;">清空</button>
+                </div>
+                <div class="panel-content" style="background: #fafafa; border: 2px dashed #e0e0e0; border-radius: 4px;">
+                    <ul id="scriptList" class="script-list">
+                        <!-- Script items go here -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: Monitor & Controls -->
+            <div class="panel">
+                <div class="panel-header">控制台 (Monitor)</div>
+                <div class="panel-content">
+                    <!-- Script Storage UI -->
+                    <div class="script-manager">
+                        <strong>腳本存取 (Storage)</strong>
+                        <div class="script-select-row" style="margin-top: 5px;">
+                            <input id="scriptNameInput" placeholder="腳本名稱" style="width: 100%;">
+                            <button onclick="saveScript()" style="background:#4CAF50; color:white;">儲存</button>
+                        </div>
+                        <div class="script-select-row">
+                            <select id="savedScriptsSelect">
+                                <option value="">載入中...</option>
+                            </select>
+                            <button onclick="loadScript()" style="background:#2196F3; color:white;">讀取</button>
+                            <button onclick="deleteScript()" style="background:#ff5252; color:white;">刪除</button>
+                        </div>
+                    </div>
+
+                    <div class="monitor-controls">
+                        <button class="btn-run" onclick="runScript()">▶ 開始執行 (Run)</button>
+                        <button class="btn-stop" onclick="stopScript()">⏹ 停止 (Stop)</button>
+
+                        <button class="btn-capture" onclick="captureScreen()">📷 截圖預覽
+                            （查看畫面座標）</button>
+                    </div>
+
+                    <!-- Preview -->
+                    <div style="margin-top: 10px; text-align: center;">
+                        <div style="position: relative; display: inline-block; max-width: 100%;">
+                            <img id="screenPreview" src=""
+                                style="max-width: 100%; border: 1px solid #ccc; display: none;"
+                                onmousemove="showCoords(event)" onclick="lockCoords(event)">
+                            <div id="coordDisplay"
+                                style="position: absolute; top: 5px; left: 5px; background: rgba(0, 0, 0, 0.7); color: #fff; padding: 2px 5px; font-size: 0.8em; border-radius: 4px; display: none; pointer-events: none; z-index: 1000;">
+                                X:0, Y:0
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logs -->
+                    <div style="margin-top: auto;">
+                        <strong>執行日誌:</strong>
+                        <div id="logConsole"
+                            style="background: #222; color: #0f0; padding: 5px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.8em; border-radius: 4px;">
+                            Waiting for logs...
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                        <button onclick="testConnection()" title="測試腳本器掛勾成功，點擊後模擬器應返回Home頁"
+                            style="width:48%; font-size: 0.8em;">掛勾測試</button>
+                        <button onclick="shutdownServer()"
+                            style="width:48%; font-size: 0.8em; background: #333; color: white;">關閉腳本器</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const list = document.getElementById('scriptList');
+            const logConsole = document.getElementById('logConsole');
+
+            // Initialize Sortable
+            function initSortable(el) {
+                new Sortable(el, {
+                    group: 'nested', // share group to allow dragging between lists
+                    animation: 150,
+                    fallbackOnBody: true,
+                    swapThreshold: 0.65
+                });
+            }
+
+            // Init main list
+            initSortable(list);
+
+            // Poll logs every second
+            setInterval(() => {
+                fetch('/logs')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.logs && data.logs.length > 0) {
+                            // Format logs locally
+                            const formattedLogs = data.logs.map(log => {
+                                // Check if log is object (new format) or string (old format legacy support)
+                                if (typeof log === 'object' && log.timestamp) {
+                                    const localTime = new Date(log.timestamp).toLocaleTimeString();
+                                    return `[${localTime}] ${log.message}`;
+                                } else {
+                                    return log;
+                                }
+                            });
+
+                            logConsole.innerHTML = formattedLogs.join('<br>');
+                            logConsole.scrollTop = logConsole.scrollHeight;
+                        }
+                    })
+                    .catch(err => console.error("Log fetch error", err));
+            }, 1000);
+
+            // Pre-fetch images
+            let availableImages = [];
+            // Pre-fetch scripts
+            let availableScriptsList = [];
+
+            function fetchImages() {
+                return fetch('/images')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.images) {
+                            availableImages = data.images;
+                            refreshAllSelects();
+                        }
+                    })
+                    .catch(err => console.error("Failed to fetch images", err));
+            }
+
+            // Initial fetch
+            fetchImages().then(() => refreshSavedScripts());
+
+            function updateSelectOptions(selectElement, selectedValue) {
+                selectElement.innerHTML = '';
+
+                if (availableImages.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.text = "無圖片 (imagesDir Empty)";
+                    selectElement.add(opt);
+                    return;
+                }
+
+                availableImages.forEach(img => {
+                    const opt = document.createElement('option');
+                    opt.value = "images/" + img; // Path relative to script execution
+                    opt.text = img;
+                    if (opt.value === selectedValue) opt.selected = true;
+                    selectElement.add(opt);
+                });
+            }
+
+            function updateScriptSelectOptions(selectElement, selectedValue) {
+                selectElement.innerHTML = '';
+                if (availableScriptsList.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.text = "無腳本 (No saved scripts)";
+                    selectElement.add(opt);
+                    return;
+                }
+                availableScriptsList.forEach(name => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.text = name;
+                    if (opt.value === selectedValue) opt.selected = true;
+                    selectElement.add(opt);
+                });
+            }
+
+            // Auto-fill script name on selection
+            document.getElementById('savedScriptsSelect').addEventListener('change', function () {
+                const val = this.value;
+                if (val) document.getElementById('scriptNameInput').value = val;
+            });
+
+            function refreshAllSelects() {
+                document.querySelectorAll('.inp-template-select').forEach(sel => {
+                    const currentVal = sel.value;
+                    updateSelectOptions(sel, currentVal);
+                });
+            }
+
+            function refreshAllScriptSelects() {
+                document.querySelectorAll('.inp-script-select').forEach(sel => {
+                    const currentVal = sel.value;
+                    updateScriptSelectOptions(sel, currentVal);
+                });
+            }
+
+            // --- COORDINATE PICKER SYSTEM ---
+
+            let activePickerItem = null;
+            let pickPhase = 0; // 0=None, 1=Click/SwipeStart, 2=SwipeEnd
+
+            function togglePickMode(btn, type) {
+                const item = btn.closest('.script-item');
+
+                // If clicking same item, cancel
+                if (activePickerItem === item) {
+                    deactivatePickMode();
+                    return;
+                }
+
+                // If another item was active, deactivate it first
+                if (activePickerItem) {
+                    deactivatePickMode();
+                }
+
+                // Activate this item
+                activePickerItem = item;
+                item.style.border = "3px solid #ff5722"; // Visual Highlight
+                item.style.backgroundColor = "#fff3e0";
+
+                // Set phase
+                if (type === 'swipe') {
+                    pickPhase = 1;
+                    btn.innerText = "🎯 起點 (Start)";
+                    btn.style.backgroundColor = "#ff5722";
+                    btn.style.color = "white";
+                } else {
+                    pickPhase = 1;
+                    btn.innerText = "🎯 選取中 (Picking)";
+                    btn.style.backgroundColor = "#ff5722";
+                    btn.style.color = "white";
+                }
+            }
+
+            function deactivatePickMode() {
+                if (!activePickerItem) return;
+
+                // Reset style
+                activePickerItem.style.border = "";
+                activePickerItem.style.backgroundColor = "";
+
+                // Reset Button text
+                const btn = activePickerItem.querySelector('.btn-pick');
+                if (btn) {
+                    btn.innerText = "🎯";
+                    btn.style.backgroundColor = "";
+                    btn.style.color = "";
+                }
+
+                activePickerItem = null;
+                pickPhase = 0;
+            }
+
+            function getScaledCoords(event, img) {
+                const rect = img.getBoundingClientRect();
+                const scaleX = img.naturalWidth / rect.width;
+                const scaleY = img.naturalHeight / rect.height;
+
+                return {
+                    x: Math.round(event.offsetX * scaleX),
+                    y: Math.round(event.offsetY * scaleY)
+                };
+            }
+
+            function lockCoords(event) {
+                const img = document.getElementById('screenPreview');
+
+                if (activePickerItem) {
+                    // Picking Mode logic
+                    const coords = getScaledCoords(event, img);
+                    const type = activePickerItem.dataset.type;
+                    const btn = activePickerItem.querySelector('.btn-pick');
+
+                    if (type === 'click') {
+                        activePickerItem.querySelector('.inp-x').value = coords.x;
+                        activePickerItem.querySelector('.inp-y').value = coords.y;
+
+                        // Auto-finish for click
+                        deactivatePickMode();
+
+                    } else if (type === 'swipe') {
+                        if (pickPhase === 1) {
+                            activePickerItem.querySelector('.inp-x1').value = coords.x;
+                            activePickerItem.querySelector('.inp-y1').value = coords.y;
+
+                            pickPhase = 2;
+                            if (btn) btn.innerText = "🎯 終點 (End)";
+
+                        } else if (pickPhase === 2) {
+                            activePickerItem.querySelector('.inp-x2').value = coords.x;
+                            activePickerItem.querySelector('.inp-y2').value = coords.y;
+
+                            // Finish
+                            deactivatePickMode();
+                        }
+                    }
+
+                } else {
+                    // Original Lock Logic
+                    const display = document.getElementById('coordDisplay');
+                    if (display.dataset.locked === "true") {
+                        display.dataset.locked = "false";
+                        display.style.border = "none";
+                        display.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+                    } else {
+                        display.dataset.locked = "true";
+                        display.style.border = "2px solid red";
+                        display.style.backgroundColor = "rgba(255, 0, 0, 0.7)";
+                    }
+                }
+            }
+
+            function showCoords(event) {
+                const display = document.getElementById('coordDisplay');
+                if (display.dataset.locked === "true") return;
+
+                const img = document.getElementById('screenPreview');
+                const coords = getScaledCoords(event, img);
+
+                display.innerText = `X:${coords.x}, Y:${coords.y}`;
+                display.style.display = 'block';
+
+                const xView = event.offsetX;
+                const yView = event.offsetY;
+                const containerWidth = img.parentElement.offsetWidth;
+
+                if (xView > containerWidth - 100) {
+                    display.style.left = (xView - 100) + 'px';
+                } else {
+                    display.style.left = (xView + 10) + 'px';
+                }
+                display.style.top = (yView + 10) + 'px';
+            }
+
+            // Create standard linear item
+            function createItem(html, type, target = null) {
+                const t = target || list;
+                const li = document.createElement('li');
+                li.className = 'script-item';
+                li.dataset.type = type;
+
+                let btnHtml = '';
+                if (type === 'click' || type === 'swipe') {
+                    // Prevent sortable drag when clicking this button? Sortable handles handle option usually, 
+                    // but here we just need onclick propagation stop if needed. 
+                    // Note: togglePickMode uses 'this'.
+                    btnHtml = `<button class="btn-pick" onclick="togglePickMode(this, '${type}'); event.stopPropagation();" style="margin-right:8px; padding: 4px 6px; font-size: 1em; cursor: pointer; border: 1px solid #ccc; background: #fff;">🎯</button>`;
+                }
+
+                li.innerHTML = `
+                <div class="item-details" style="display:flex; align-items:center;">
+                    ${btnHtml}
+                    <div style="flex-grow:1;">${html}</div>
+                </div>
+                <button class="item-remove" onclick="this.closest('.script-item').remove()">X</button>
+            `;
+                t.appendChild(li);
+            }
+
+            // Create nested container item
+            function createContainer(type, headerHtml, color, target = null) {
+                const t = target || list;
+                const li = document.createElement('li');
+                li.className = 'block-container';
+                li.dataset.type = type;
+
+                li.innerHTML = `
+                <div class="block-header" style="background-color: ${color}">
+                    <span>${headerHtml}</span>
+                    <button class="item-remove" onclick="this.closest('.block-container').remove()">X</button>
+                </div>
+                <div class="block-body">
+                    <ul class="nested-list"></ul>
+                </div>
+            `;
+
+                t.appendChild(li);
+                // Initialize Sortable for the new nested list
+                initSortable(li.querySelector('.nested-list'));
+                // Scroll to bottom only if interactive
+                if (!target) li.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function createIfBlockInternalVisual(template, condition, target = null, clickTarget = true) {
+                const t = target || list;
+                const li = document.createElement('li');
+                li.className = 'block-container';
+                li.dataset.type = 'if_block';
+
+                // Initial options might be empty, will be filled by updateSelectOptions
+                const shortName = template.replace('images/', '');
+
+                // Determine selected state
+                const isNot = (condition === 'not_found') ? 'selected' : '';
+                const isFound = (condition !== 'not_found') ? 'selected' : '';
+
+                // Click check
+                const isClick = clickTarget ? 'checked' : '';
+
+                li.innerHTML = `
+                <div class="block-header" style="background-color: #009688">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <span>如果 (If)</span>
+                        <select class="inp-condition" onclick="event.stopPropagation()">
+                            <option value="found" ${isFound}>找到 (Found)</option>
+                            <option value="not_found" ${isNot}>沒找到 (Not Found)</option>
+                        </select>
+                         <span class="select-container"></span>
+                         <label style="font-size:0.9em; display:flex; align-items:center;">
+                            <input type="checkbox" class="inp-click" ${isClick} onclick="event.stopPropagation()"> 點擊
+                         </label>
+                    </div>
+                    <button class="item-remove" onclick="this.closest('.block-container').remove()">X</button>
+                </div>
+                <div class="block-body"><ul class="nested-list"></ul></div>
+            `;
+
+                const select = document.createElement('select');
+                select.className = 'inp-template-select long';
+                select.onclick = (e) => e.stopPropagation();
+
+                // Add option manually first to ensure value persists
+                const opt = document.createElement('option');
+                opt.value = template;
+                opt.text = shortName;
+                opt.selected = true;
+                select.add(opt);
+
+                li.querySelector('.select-container').appendChild(select);
+                t.appendChild(li);
+                initSortable(li.querySelector('.nested-list'));
+
+                // If images are already loaded, update full list
+                if (availableImages.length > 0) {
+                    updateSelectOptions(select, template);
+                }
+            }
+
+            function addRunScript() {
+                const li = document.createElement('li');
+                li.className = 'script-item';
+                li.dataset.type = 'run_script';
+                li.style.borderLeft = "5px solid #E91E63";
+
+                const select = document.createElement('select');
+                select.className = 'inp-script-select long';
+                updateScriptSelectOptions(select, '');
+
+                li.innerHTML = `
+                    <div class="item-details">
+                        <strong>呼叫其他腳本 (Run Script)</strong> 
+                        腳本名稱: <span class="select-container"></span>
+                    </div>
+                    <button class="item-remove" onclick="this.parentElement.remove()">X</button>
+                `;
+
+                li.querySelector('.select-container').appendChild(select);
+                list.appendChild(li);
+                li.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function addClick() {
+                createItem(`
+                <strong>點擊</strong> 
+                X: <input type="number" class="inp-x" value="500"> 
+                Y: <input type="number" class="inp-y" value="500">
+            `, 'click');
+            }
+
+            function addSwipe() {
+                createItem(`
+                <strong>滑動</strong> 
+                X1: <input type="number" class="inp-x1" value="500"> 
+                Y1: <input type="number" class="inp-y1" value="800">
+                ->
+                X2: <input type="number" class="inp-x2" value="500"> 
+                Y2: <input type="number" class="inp-y2" value="200">
+                時間(ms): <input type="number" class="inp-duration" value="500">
+            `, 'swipe');
+            }
+
+            function addWait() {
+                createItem(`
+                <strong>等待</strong> 
+                秒數: <input type="number" class="inp-seconds" value="1">
+            `, 'wait');
+            }
+
+            function addFindClick() {
+                fetchImages().then(() => {
+                    const li = document.createElement('li');
+                    li.className = 'script-item';
+                    li.dataset.type = 'find_click';
+
+                    const select = document.createElement('select');
+                    select.className = 'inp-template-select long';
+                    updateSelectOptions(select, '');
+
+                    li.innerHTML = `
+                    <div class="item-details">
+                        <strong>找圖點擊</strong> 
+                        檔名: <span class="select-container"></span>
+                    </div>
+                    <button class="item-remove" onclick="this.parentElement.remove()">X</button>
+                `;
+
+                    li.querySelector('.select-container').appendChild(select);
+                    list.appendChild(li);
+                });
+            }
+
+            function toggleLoopMenu() {
+                const menu = document.getElementById('loopMenu');
+                const arrow = document.getElementById('loopMenuArrow');
+                if (menu.style.display === 'none') {
+                    menu.style.display = 'block';
+                    arrow.innerText = '▲';
+                } else {
+                    menu.style.display = 'none';
+                    arrow.innerText = '▼';
+                }
+            }
+
+            function updateLoopHeader(input) {
+                const val = parseInt(input.value);
+                const span = input.previousElementSibling; // "重複 " or equivalent text
+                // Actually structure is: "重複 " <input> " 次"
+                // We'll just check value.
+                // Better approach: changing the text layout slightly.
+            }
+
+            function onLoopCountChange(input) {
+                const val = parseInt(input.value);
+                // We can maybe change the "次" text to "無限 (Infinite)" if 0
+                // For simplicity, let's just trust the user knows 0 is infinite or add a label hint dynamically
+                const suffix = input.nextElementSibling; // The text node " 次" might be a span or just text
+                // Since createContainer uses innerHTML string, it's hard to target specific text node easily without spans.
+                // Let's modify createContainer or addLoopBlock to separate them.
+            }
+
+            function addLoopBlock() {
+                // Modified to support 0 and dynamic label
+                const li = document.createElement('li');
+                li.className = 'block-container';
+                li.dataset.type = 'loop_block';
+                const color = '#673AB7';
+
+                li.innerHTML = `
+                    <div class="block-header" style="background-color: ${color}">
+                        <div style="display:flex; align-items:center; gap: 5px;">
+                            <span>迴圈 (Loop) - 重複</span>
+                            <input type="number" class="inp-count" value="5" min="0" onclick="event.stopPropagation()" oninput="checkLoopInfinite(this)">
+                            <span class="loop-suffix">次 (0為無限)</span>
+                        </div>
+                        <button class="item-remove" onclick="this.closest('.block-container').remove()">X</button>
+                    </div>
+                    <div class="block-body">
+                        <ul class="nested-list"></ul>
+                    </div>
+                `;
+
+                list.appendChild(li);
+                initSortable(li.querySelector('.nested-list'));
+                li.scrollIntoView({ behavior: 'smooth' });
+
+                // Initial check for border
+                checkLoopInfinite(li.querySelector('.inp-count'));
+            }
+
+            function checkLoopInfinite(input) {
+                const val = parseInt(input.value);
+                // Text is now static
+                if (val === 0) {
+                    input.style.borderColor = "#ffeb3b";
+                    input.style.backgroundColor = "#fff9c4";
+                } else {
+                    input.style.borderColor = "";
+                    input.style.backgroundColor = "";
+                }
+            }
+
+            function addLoopBreak() {
+                createItem(`
+                    <strong style="color: #d32f2f;">停止迴圈 (Break Loop)</strong>
+                `, 'loop_break');
+            }
+
+            // ... (keep addIfBlock and clearScript) ...
+            function addIfBlock() {
+                fetchImages().then(() => {
+                    createIfBlockInternalVisual('', 'found', null, true);
+                    list.lastElementChild.scrollIntoView({ behavior: 'smooth' });
+                });
+            }
+
+            function clearScript() {
+                if (confirm('確定要清空腳本嗎?')) {
+                    document.getElementById('scriptList').innerHTML = '';
+                }
+            }
+
+            // --- SCRIPT SERIALIZATION ---
+
+            function serializeScript(element) {
+                let actions = [];
+                const children = element.children;
+
+                for (let i = 0; i < children.length; i++) {
+                    const item = children[i];
+                    const type = item.dataset.type;
+
+                    if (!type) continue;
+
+                    if (type === 'run_script') {
+                        const scriptName = item.querySelector('.inp-script-select').value;
+                        actions.push({ type: 'run_script', script_name: scriptName });
+                        continue;
+                    }
+
+                    if (type === 'loop_block') {
+                        // Loop Start
+                        const count = item.querySelector('.inp-count').value;
+                        actions.push({ type: 'loop_start', count: count });
+
+                        // Recursive Body
+                        const nestedList = item.querySelector('.nested-list');
+                        const childActions = serializeScript(nestedList);
+                        actions = actions.concat(childActions);
+
+                        // Loop End
+                        actions.push({ type: 'loop_end' });
+
+                    } else if (type === 'loop_break') {
+                        actions.push({ type: 'loop_break' });
+
+                    } else if (type === 'if_block') {
+                        // If Found
+                        const template = item.querySelector('.inp-template-select').value;
+                        const condition = item.querySelector('.inp-condition') ? item.querySelector('.inp-condition').value : 'found';
+                        const clickTarget = item.querySelector('.inp-click') ? item.querySelector('.inp-click').checked : true;
+                        actions.push({ type: 'if_found', template: template, condition: condition, click_target: clickTarget });
+
+                        // Recursive Body
+                        const nestedList = item.querySelector('.nested-list');
+                        const childActions = serializeScript(nestedList);
+                        actions = actions.concat(childActions);
+
+                        // If End
+                        actions.push({ type: 'if_end' });
+
+                    } else {
+                        // Normal Item
+                        const data = { type: type };
+                        if (type === 'click') {
+                            data.x = item.querySelector('.inp-x').value;
+                            data.y = item.querySelector('.inp-y').value;
+                        } else if (type === 'swipe') {
+                            data.x1 = item.querySelector('.inp-x1').value;
+                            data.y1 = item.querySelector('.inp-y1').value;
+                            data.x2 = item.querySelector('.inp-x2').value;
+                            data.y2 = item.querySelector('.inp-y2').value;
+                            data.duration = item.querySelector('.inp-duration').value;
+                        } else if (type === 'wait') {
+                            data.seconds = item.querySelector('.inp-seconds').value;
+                        } else if (type === 'find_click') {
+                            data.template = item.querySelector('.inp-template-select').value;
+                        }
+                        actions.push(data);
+                    }
+                }
+                return actions;
+            }
+
+            // --- SAVE / LOAD SYSTEM ---
+
+            function refreshSavedScripts() {
+                fetch('/api/scripts')
+                    .then(res => res.json())
+                    .then(data => {
+                        const sel = document.getElementById('savedScriptsSelect');
+                        sel.innerHTML = '<option value="">-- 選擇腳本 --</option>';
+                        if (data.scripts) {
+                            availableScriptsList = data.scripts; // Update global list
+                            data.scripts.forEach(name => {
+                                const opt = document.createElement('option');
+                                opt.value = name;
+                                opt.text = name;
+                                sel.add(opt);
+                            });
+                            refreshAllScriptSelects(); // Update canvas dropdowns
+                        }
+                    })
+                    .catch(err => console.error("Failed to fetch scripts", err));
+            }
+
+            function saveScript() {
+                const name = document.getElementById('scriptNameInput').value.trim();
+                if (!name) {
+                    alert("請輸入腳本名稱");
+                    return;
+                }
+
+                const listRoot = document.getElementById('scriptList');
+                const actions = serializeScript(listRoot);
+
+                if (actions.length === 0) {
+                    if (!confirm("腳本內容為空，確定要儲存嗎？")) return;
+                }
+
+                fetch('/api/scripts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, content: actions })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(data.message || (data.error));
+                        refreshSavedScripts();
+                    })
+                    .catch(err => alert("Error saving: " + err));
+            }
+
+            function deleteScript() {
+                const name = document.getElementById('savedScriptsSelect').value;
+                if (!name) {
+                    alert("請先選擇要刪除的腳本");
+                    return;
+                }
+
+                if (!confirm(`確定要刪除腳本 "${name}" 嗎？`)) return;
+
+                fetch(`/api/scripts/${name}`, { method: 'DELETE' })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(data.message || data.error);
+                        refreshSavedScripts();
+                        document.getElementById('savedScriptsSelect').value = "";
+                    })
+                    .catch(err => alert("Error deleting: " + err));
+            }
+
+            function loadScript() {
+                const name = document.getElementById('savedScriptsSelect').value;
+                if (!name) return;
+
+                if (document.getElementById('scriptList').children.length > 0) {
+                    if (!confirm("載入腳本將會覆蓋當前畫布，確定繼續嗎？")) return;
+                }
+
+                fetch(`/api/scripts/${name}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.content) {
+                            reconstructScript(data.content);
+                        } else {
+                            alert("Failed to load: " + (data.error || "Unknown error"));
+                        }
+                    })
+                    .catch(err => alert("Error loading: " + err));
+            }
+
+            function reconstructScript(actions, parentElement = null) {
+                const target = parentElement || list;
+                if (!parentElement) target.innerHTML = '';
+
+                // We use a helper function to consume the flat list recursively
+                reconstructComplex(actions, 0, target, null);
+            }
+
+            function reconstructComplex(actions, startIndex, targetList, terminatorType) {
+                let i = startIndex;
+                while (i < actions.length) {
+                    const action = actions[i];
+
+                    // Check for terminator (loop_end or if_end)
+                    if (terminatorType && action.type === terminatorType) {
+                        return i + 1; // Return index after terminator to continue parent loop
+                    }
+
+                    if (action.type === 'run_script') {
+                        // Manual creation
+                        const li = document.createElement('li');
+                        li.className = 'script-item';
+                        li.dataset.type = 'run_script';
+                        li.style.borderLeft = "5px solid #E91E63";
+
+                        const select = document.createElement('select');
+                        select.className = 'inp-script-select long';
+
+                        // Populate based on available scripts, or just add the current value if list is empty
+                        updateScriptSelectOptions(select, action.script_name);
+
+                        li.innerHTML = `
+                            <div class="item-details">
+                                <strong>呼叫其他腳本 (Run Script)</strong> 
+                                腳本名稱: <span class="select-container"></span>
+                            </div>
+                            <button class="item-remove" onclick="this.parentElement.remove()">X</button>
+                        `;
+
+                        li.querySelector('.select-container').appendChild(select);
+                        targetList.appendChild(li);
+
+                        i++;
+                        continue;
+                    }
+
+                    if (action.type === 'loop_start') {
+                        // Manual creation to match addLoopBlock HTML
+                        const li = document.createElement('li');
+                        li.className = 'block-container';
+                        li.dataset.type = 'loop_block';
+                        const color = '#673AB7';
+
+                        const countVal = action.count;
+                        const borderStyle = (parseInt(countVal) === 0) ? "border-color: #ffeb3b; background-color: #fff9c4;" : "";
+
+                        li.innerHTML = `
+                            <div class="block-header" style="background-color: ${color}">
+                                <div style="display:flex; align-items:center; gap: 5px;">
+                                    <span>迴圈 (Loop) - 重複</span>
+                                    <input type="number" class="inp-count" value="${countVal}" min="0" 
+                                           onclick="event.stopPropagation()" oninput="checkLoopInfinite(this)"
+                                           style="${borderStyle}">
+                                    <span class="loop-suffix">次 (0為無限)</span>
+                                </div>
+                                <button class="item-remove" onclick="this.closest('.block-container').remove()">X</button>
+                            </div>
+                            <div class="block-body">
+                                <ul class="nested-list"></ul>
+                            </div>
+                        `;
+
+                        targetList.appendChild(li);
+                        initSortable(li.querySelector('.nested-list'));
+
+                        // Recurse into the new container's nested list
+                        const nestedList = li.querySelector('.nested-list');
+                        i++; // consume start
+                        i = reconstructComplex(actions, i, nestedList, 'loop_end'); // consume until end
+                        // i is now after loop_end
+                        continue; // continue current loop
+
+                    } else if (action.type === 'loop_break') {
+                        createItem(`
+                            <strong style="color: #d32f2f;">停止迴圈 (Break Loop)</strong>
+                        `, 'loop_break', targetList);
+                        i++;
+                        continue;
+                    } else if (action.type === 'if_found') {
+                        const cond = action.condition || 'found';
+                        // Default true if undefined (legacy scripts)
+                        const clickT = (action.click_target !== undefined) ? action.click_target : true;
+                        createIfBlockInternalVisual(action.template, cond, targetList, clickT);
+                        const nestedList = targetList.lastElementChild.querySelector('.nested-list');
+                        i++;
+                        i = reconstructComplex(actions, i, nestedList, 'if_end');
+                        continue;
+                    }
+
+                    // Check if it's a terminator for a parent call (edge case if logic is malformed)
+                    if (action.type === 'loop_end' || action.type === 'if_end') {
+                        // unexpected terminator, just skip or return?
+                        // if match terminatorType, we handled it above.
+                        // if mismatch, it means structure is broken. specific break.
+                        return i + 1;
+                    }
+
+                    // Simple Items
+                    if (action.type === 'click') {
+                        createItem(`
+                        <strong>點擊</strong> 
+                        X: <input type="number" class="inp-x" value="${action.x}"> 
+                        Y: <input type="number" class="inp-y" value="${action.y}">
+                    `, 'click', targetList);
+                    } else if (action.type === 'swipe') {
+                        createItem(`
+                        <strong>滑動</strong> 
+                        X1: <input type="number" class="inp-x1" value="${action.x1}"> 
+                        Y1: <input type="number" class="inp-y1" value="${action.y1}">
+                        ->
+                        X2: <input type="number" class="inp-x2" value="${action.x2}"> 
+                        Y2: <input type="number" class="inp-y2" value="${action.y2}">
+                        時間(ms): <input type="number" class="inp-duration" value="${action.duration}">
+                    `, 'swipe', targetList);
+                    } else if (action.type === 'wait') {
+                        createItem(`
+                        <strong>等待</strong> 
+                        秒數: <input type="number" class="inp-seconds" value="${action.seconds}">
+                    `, 'wait', targetList);
+                    } else if (action.type === 'find_click') {
+                        // Create basic structure first
+                        createItem(`
+                        <div class="item-details">
+                            <strong>找圖點擊</strong> 
+                            檔名: <span class="select-container"></span>
+                        </div>
+                    `, 'find_click', targetList);
+
+                        // Manually inject select
+                        const li = targetList.lastElementChild;
+                        const select = document.createElement('select');
+                        select.className = 'inp-template-select long';
+
+                        const opt = document.createElement('option');
+                        opt.value = action.template;
+                        opt.text = action.template.replace('images/', '');
+                        opt.selected = true;
+                        select.add(opt);
+
+                        li.querySelector('.select-container').appendChild(select);
+
+                        // Update valid options if available
+                        if (availableImages.length > 0) updateSelectOptions(select, action.template);
+                    }
+
+                    i++;
+                }
+                return i;
+            }
+
+            // --- EXECUTION CONTROL ---
+
+            function runScript() {
+                const listRoot = document.getElementById('scriptList');
+                const actions = serializeScript(listRoot);
+
+                if (actions.length === 0) {
+                    alert("請先新增一些指令！");
+                    return;
+                }
+
+                fetch('/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ actions: actions })
+                })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().then(err => { throw new Error(err.message || "Server Error"); });
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        // Success: Do not alert "Script started" to avoid annoyance, usually logs are enough.
+                        // Or simple toast. User wants logs.
+                        // alert(data.message); 
+                        console.log(data.message);
+                    })
+                    .catch(err => alert("Start failed: " + err));
+            }
+
+            function stopScript() {
+                fetch('/stop', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => alert(data.message));
+            }
+
+            function shutdownServer() {
+                if (confirm("確定要關閉伺服器並結束網頁嗎？")) {
+                    fetch('/shutdown', { method: 'POST' })
+                        .then(res => {
+                            console.log("Server shutdown.");
+                            window.close();
+                        })
+                        .catch(err => {
+                            console.log("Server shutdown command sent.");
+                            window.close();
+                        });
+                }
+            }
+
+            function testConnection() {
+                fetch('/test_connection', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => alert(data.message))
+                    .catch(err => alert("Error: " + err));
+            }
+
+            function captureScreen() {
+                fetch('/capture', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const img = document.getElementById('screenPreview');
+                            img.src = data.url;
+                            img.style.display = 'block';
+                        } else {
+                            alert("Capture failed: " + data.message);
+                        }
+                    })
+                    .catch(err => alert("Error: " + err));
+            }
+
+        </script>
+    </body>
+
+</html>

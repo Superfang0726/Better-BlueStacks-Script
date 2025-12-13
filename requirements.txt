@@ -1,0 +1,12 @@
+# ADB Client library to communicate with BlueStacks
+# 用於與BlueStacks進行通訊的ADB客戶端庫
+pure-python-adb==0.3.0.dev0
+
+# Image processing library for template matching
+# 圖像處理庫，用於模板匹配
+opencv-python-headless>=4.5.3.56
+numpy>=1.21.0
+
+# Web Framework
+# 網頁框架
+flask>=2.0.0
