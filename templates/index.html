@@ -41,22 +41,57 @@
 
         #workspace {
             display: flex;
+            /* Keep flex for editor-container filling */
             flex-grow: 1;
             overflow: hidden;
             position: relative;
+            /* Anchor for absolute sidebars */
         }
 
-        /* Sidebar (Left) */
+        /* Sidebar (Left) - Sliding */
         #sidebar {
             width: 200px;
-            background: #2b2b2b;
+            background: rgba(43, 43, 43, 0.95);
+            /* Semi-transparent */
             border-right: 1px solid #444;
             display: flex;
             flex-direction: column;
-            padding: 10px;
+            padding: 10px 25px 10px 10px;
+            box-sizing: border-box;
             overflow-y: auto;
-            flex-shrink: 0;
-            z-index: 5;
+            /* Absolute Positioning */
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+            /* Sliding Logic */
+            transform: translateX(-185px);
+            /* Hide most of it */
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        #sidebar:hover {
+            transform: translateX(0);
+            /* Slide out */
+            box-shadow: 5px 0 15px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Visual hint strip for Sidebar */
+        #sidebar::after {
+            content: "▶";
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+            font-size: 10px;
+            pointer-events: none;
+        }
+
+        #sidebar:hover::after {
+            display: none;
         }
 
         #sidebar h3 {
@@ -101,15 +136,11 @@
         }
 
         .btn-swipe {
-            border-left: 3px solid #2196F3;
+            border-left: 3px solid #03A9F4;
         }
 
         .btn-wait {
-            border-left: 3px solid #FF9800;
-        }
-
-        .btn-find {
-            border-left: 3px solid #9C27B0;
+            border-left: 3px solid #FFC107;
         }
 
         .btn-loop {
@@ -117,18 +148,23 @@
         }
 
         .btn-break {
-            border-left: 3px solid #b71c1c;
+            border-left: 3px solid #D32F2F;
+        }
+
+        .btn-find {
+            border-left: 3px solid #1565C0;
         }
 
         .btn-script {
             border-left: 3px solid #E91E63;
         }
 
-        /* Canvas (Center) */
+        /* Canvas Container */
         #editor-container {
-            flex-grow: 1;
-            position: relative;
+            width: 100%;
+            height: 100%;
             background: #111;
+            /* No margin/padding needed */
         }
 
         canvas#mycanvas {
@@ -138,17 +174,56 @@
             cursor: crosshair;
         }
 
-        /* Monitor Panel (Right) */
+        /* Monitor Panel (Right) - Sliding */
         #monitor-panel {
             width: 350px;
-            background: #2b2b2b;
+            background: rgba(43, 43, 43, 0.95);
             border-left: 1px solid #444;
             display: flex;
             flex-direction: column;
-            padding: 10px;
+            padding: 10px 10px 10px 25px;
+            box-sizing: border-box;
             overflow-y: auto;
-            flex-shrink: 0;
-            z-index: 5;
+            /* Absolute Positioning */
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+            /* Sliding Logic */
+            transform: translateX(335px);
+            /* Hide most of it */
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        #monitor-panel:hover {
+            transform: translateX(0);
+            /* Slide out */
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Pinned State (Force Open) */
+        #sidebar.pinned,
+        #monitor-panel.pinned {
+            transform: translateX(0) !important;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Visual hint strip */
+        #monitor-panel::after {
+            content: "◀";
+            position: absolute;
+            left: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+            font-size: 10px;
+            pointer-events: none;
+        }
+
+        #monitor-panel:hover::after {
+            display: none;
         }
 
         .monitor-frame {
@@ -346,7 +421,23 @@
             }
         }
         window.addEventListener("resize", resize);
+        window.addEventListener("resize", resize);
         setTimeout(resize, 100);
+
+        // Sidebar Pin Logic: Start Open, Collapse on Mouse Leave
+        window.addEventListener('load', () => {
+            const s = document.getElementById('sidebar');
+            const m = document.getElementById('monitor-panel');
+
+            if (s && m) {
+                s.classList.add('pinned');
+                m.classList.add('pinned');
+
+                // Remove pinned state on first mouse exit
+                s.addEventListener('mouseleave', () => { s.classList.remove('pinned'); }, { once: true });
+                m.addEventListener('mouseleave', () => { m.classList.remove('pinned'); }, { once: true });
+            }
+        });
 
         // --- GLOBAL STATE ---
         var isCoordsLocked = false;
