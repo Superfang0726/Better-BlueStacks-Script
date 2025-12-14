@@ -273,7 +273,7 @@
             <span style="font-weight:bold; margin-right:20px; font-size:16px;">BlueStacks Editor</span>
             <button class="tool-btn primary" onclick="runGraph()">▶ 執行 (Run)</button>
             <button class="tool-btn danger" onclick="stopScript()">⏹ 停止 (Stop)</button>
-            <button class="tool-btn" onclick="clearGraph()" style="margin-left:5px;">🧹 清空 (Clear)</button>
+            <button class="tool-btn" onclick="clearGraph()">🧹 清空 (Clear)</button>
             <div style="flex-grow:1"></div>
             <input type="text" id="scriptName" placeholder="Script Name" style="width: 150px;">
             <button class="tool-btn" onclick="saveGraph()">儲存 (Save)</button>
@@ -481,15 +481,16 @@
 
         // 5. Loop (Updated)
         function NodeLoop() {
+            var that = this;
             this.addInput("Exec", "ACTION");
             this.addOutput("Body", "ACTION");
             this.addOutput("Exit", "ACTION");
             this.properties = { count: 3 };
             this.addWidget("number", "Count (0=Inf)", 3, function (v) {
                 var val = Math.max(0, Math.floor(v));
-                this.properties.count = val;
+                that.properties.count = val;
                 // Force UI to show integer
-                if (this.widgets && this.widgets[0]) this.widgets[0].value = val;
+                if (that.widgets && that.widgets[0]) that.widgets[0].value = val;
             }, { min: 0, step: 10, precision: 0 });
             this.title = "Loop";
             this.bgcolor = "#673AB7";

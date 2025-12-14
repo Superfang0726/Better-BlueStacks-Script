@@ -215,6 +215,12 @@ def execute_graph(nodes_list, recursion_depth=0):
             else:
                  next_id = current_node.get('next')
                  
+            # Automatic Loop Return: If end of branch and inside a loop, go back to loop start
+            # 自動迴圈返回：若分支結束且在迴圈內，回到迴圈起點
+            if next_id is None and loop_stack:
+                # log_message(f"End of branch, returning to loop {loop_stack[-1]}")
+                next_id = loop_stack[-1]
+                 
         except Exception as e:
             log_message(f"Exec Error ({node_type}): {e}")
             return False
