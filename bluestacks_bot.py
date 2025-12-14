@@ -55,10 +55,6 @@ class BlueStacksBot:
             self.logger(f"Failed to get devices: {e}")
             self.device = None
 
-    def connect(self):
-        # Legacy method kept for compatibility, but init does the work now
-        pass
-
     def click(self, x, y):
         """
         Simulate a tap at the given coordinates.
@@ -77,6 +73,7 @@ class BlueStacksBot:
         else:
             self.logger("Device not connected.")
             # 設備未連接。
+
 
     def swipe(self, x1, y1, x2, y2, duration=500):
         """
@@ -204,8 +201,8 @@ class BlueStacksBot:
                         
                         # If pixel correlation is too low, it means we found the shape/text 
                         # but the internal details (like ON/OFF state) don't match.
-                        if score < 0.55: # Lowered from 0.65 to 0.55 to be more forgiving
-                            # self.logger(f"Rejected SIFT match due to low pixel correlation: {score}")
+                        if score < 0.7: # Raised to 0.7 to prevent false positives (was 0.55)
+                            self.logger(f"Rejected SIFT match due to low pixel correlation: {score:.2f}")
                             continue
                             
                     except Exception as e:
@@ -268,40 +265,60 @@ class BlueStacksBot:
             time.sleep(0.5)
         return None
 
-    def find_and_click(self, template_path, timeout=3, click_target=True):
+    def find_and_click(self, template_path, timeout=3, click_target=True, method='auto'):
         """
         Find an image template on the screen and optionally click it.
-        Strategy: Try SIFT first (Robust), Fallback to Template Matching (Simple).
+        在螢幕上尋找圖片並可選點擊。
+        
+        Args:
+            template_path (str): Path to image template.
+            timeout (int): Search timeout in seconds.
+            click_target (bool): Whether to click if found.
+            method (str): 'auto', 'sift', or 'template'.
         """
         if not self.device:
             self.logger("Device not connected.")
             return False
 
-        # 1. Try SIFT
-        # self.logger(f"Finding {template_path} using SIFT...")
-        center = self.find_with_sift(template_path, timeout=min(timeout, 2)) # Search briefly with SIFT
+        center = None
+        method = method.lower()
         
-        if not center:
-            # 2. Fallback to Template Matching if SIFT fails
-            # self.logger("SIFT failed. Falling back to Template Matching...")
-            center = self.find_with_template_matching(template_path, timeout=min(timeout, 2), threshold=0.8)
-            if center:
-                 self.logger(f"Template Matching Found {template_path} at ({center[0]}, {center[1]})")
+        if method == 'sift':
+            # Force SIFT
+            center = self.find_with_sift(template_path, timeout=timeout)
+            
+        elif method == 'template':
+            # Force Template Matching
+            center = self.find_with_template_matching(template_path, timeout=timeout, threshold=0.8)
+            
+        else: # auto
+            # 1. Try SIFT (Robust)
+            center = self.find_with_sift(template_path, timeout=min(timeout, 2))
+            
+            if not center:
+                # 2. Fallback to Template Matching
+                center = self.find_with_template_matching(template_path, timeout=min(timeout, 2), threshold=0.8)
+                if center:
+                     self.logger(f"Template Matching Found {template_path} at ({center[0]}, {center[1]})")
 
         if center:
             self.logger(f"Found at ({center[0]}, {center[1]})")
             if click_target:
                 self.click(center[0], center[1])
-            return True
+            return center
         else:
             self.logger(f"Failed to find {template_path}")
-            return False
-            
-        # Legacy code removed as per user request to force new system.
+            return None
 
 def main():
-    # Main execution entry point
-    # 主要執行入口點
+    """
+    Main execution entry point for standalone testing.
+    獨立測試的主要入口點。
+    
+    This function allows testing the bot connection and basic actions 
+    without running the Flask server.
+    此功能允許在不運行 Flask 伺服器的情況下測試機器人連接和基本動作。
+    """
     
     # Get host and port from environment variables or use defaults
     # 從環境變數獲取主機和連接埠，或使用預設值
@@ -309,7 +326,6 @@ def main():
     port = int(os.environ.get("ADB_PORT", 5555))
     
     print(f"Initializing bot connecting to {host}:{port}...")
-    # 初始化機器人，連接至 {host}:{port}...
     
     bot = BlueStacksBot(host, port)
     
@@ -322,22 +338,15 @@ def main():
         bot.screencap("before_action.png")
         
         # Wait a bit
-        # 等待一下
         time.sleep(1)
         
         # Example click (adjust coordinates for your specific app)
         # 範例點擊 (請針對您的應用程式調整座標)
         # bot.click(500, 500)
         
-        # Example swipe
-        # 範例滑動
-        # bot.swipe(500, 500, 500, 200)
-        
         print("Test sequence completed.")
-        # 測試序列完成。
     else:
         print("Bot failed to initialize device connection.")
-        # 機器人無法初始化設備連接。
 
 if __name__ == "__main__":
     main()

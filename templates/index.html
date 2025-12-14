@@ -4,1298 +4,1010 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BlueStacks 腳本編輯器</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <title>BlueStacks Visual Scripting</title>
+    <!-- LiteGraph.js (Local) -->
+    <link rel="stylesheet" type="text/css" href="/static/css/litegraph.css">
+    <script type="text/javascript" src="/static/js/litegraph.js"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .btn-add {
-            background-color: #4CAF50;
-            color: white;
-        }
-
-        .btn-run {
-            background-color: #2196F3;
-            color: white;
+        body,
+        html {
             width: 100%;
-            margin-top: 10px;
-            font-size: 1.2em;
-        }
-
-        .btn-stop {
-            background-color: #f44336;
-            color: white;
-            width: 100%;
-            margin-top: 10px;
-            font-size: 1.2em;
-        }
-
-        .btn-capture {
-            background-color: #607d8b;
-            color: white;
-            width: 100%;
-            margin-top: 10px;
-            font-size: 1.2em;
-            padding: 8px;
-            /* Maintain existing padding preference */
-        }
-
-        .script-list {
-            list-style: none;
-            padding: 10px;
-            border: 2px dashed #ddd;
-            min-height: 100px;
-            background: #fafafa;
-            border-radius: 4px;
-        }
-
-        .script-item {
-            background: white;
-            border: 1px solid #ccc;
-            margin-bottom: 5px;
-            padding: 10px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            cursor: grab;
-        }
-
-        /* Nested Block Styles */
-        .block-container {
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            overflow: hidden;
-            display: block !important;
-            /* Override flex from script-item if reused */
+            height: 100%;
+            margin: 0;
             padding: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            color: #ddd;
+            font-family: 'Segoe UI', sans-serif;
         }
 
-        .block-header {
-            padding: 10px;
-            background-color: #e0e0e0;
+        #main-layout {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #toolbar {
+            height: 40px;
+            background: #222;
+            border-bottom: 1px solid #444;
+            display: flex;
             align-items: center;
-            cursor: grab;
-            font-weight: bold;
-            color: white;
+            padding: 0 10px;
+            gap: 10px;
+            flex-shrink: 0;
+            z-index: 10;
         }
 
-        .block-body {
-            padding: 10px;
-            background-color: rgba(255, 255, 255, 0.5);
-        }
-
-        .nested-list {
-            min-height: 50px;
-            border: 2px dashed rgba(0, 0, 0, 0.1);
-            padding: 5px;
-            list-style: none;
-            background-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .item-details {
+        #workspace {
+            display: flex;
             flex-grow: 1;
+            overflow: hidden;
+            position: relative;
         }
 
-        .item-remove {
-            background: #ff5252;
+        /* Sidebar (Left) */
+        #sidebar {
+            width: 200px;
+            background: #2b2b2b;
+            border-right: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            z-index: 5;
+        }
+
+        #sidebar h3 {
+            margin-top: 5px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .node-btn {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            background: #3c3c3c;
+            border: 1px solid #555;
+            color: #eee;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .node-btn:hover {
+            background: #505050;
+            transform: translateX(2px);
+            border-color: #777;
+        }
+
+        /* Colored strips for buttons */
+        .btn-start {
+            border-left: 3px solid #4CAF50;
+        }
+
+        .btn-click {
+            border-left: 3px solid #2196F3;
+        }
+
+        .btn-swipe {
+            border-left: 3px solid #2196F3;
+        }
+
+        .btn-wait {
+            border-left: 3px solid #FF9800;
+        }
+
+        .btn-find {
+            border-left: 3px solid #9C27B0;
+        }
+
+        .btn-loop {
+            border-left: 3px solid #673AB7;
+        }
+
+        .btn-break {
+            border-left: 3px solid #b71c1c;
+        }
+
+        .btn-script {
+            border-left: 3px solid #E91E63;
+        }
+
+        /* Canvas (Center) */
+        #editor-container {
+            flex-grow: 1;
+            position: relative;
+            background: #111;
+        }
+
+        canvas#mycanvas {
+            width: 100%;
+            height: 100%;
+            outline: none;
+            cursor: crosshair;
+        }
+
+        /* Monitor Panel (Right) */
+        #monitor-panel {
+            width: 350px;
+            background: #2b2b2b;
+            border-left: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            z-index: 5;
+        }
+
+        .monitor-frame {
+            background: #000;
+            border: 1px solid #555;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        #screenPreview {
+            max-width: 100%;
+            max-height: 400px;
+            display: none;
+            cursor: crosshair;
+        }
+
+        /* Toolbar Buttons */
+        .tool-btn {
+            background: #444;
+            color: #ddd;
+            border: 1px solid #555;
+            padding: 5px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .tool-btn:hover {
+            background: #555;
+        }
+
+        .tool-btn.primary {
+            background: #2196F3;
+            border-color: #1976D2;
             color: white;
-            padding: 5px 10px;
+        }
+
+        .tool-btn.danger {
+            background: #f44336;
+            border-color: #d32f2f;
+            color: white;
+        }
+
+        .tool-btn.block {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        input,
+        select {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        /* Log Console (Bottom of Monitor) */
+        #logConsole {
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            padding: 5px;
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            margin-top: auto;
+            /* Push to bottom */
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        #coordDisplay {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 2px 5px;
             font-size: 0.8em;
             border-radius: 4px;
+            pointer-events: none;
+            display: none;
+            z-index: 999;
         }
 
-        input {
-            padding: 5px;
-            margin: 0 5px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            width: 60px;
-            vertical-align: middle;
+        /* Toast Notification */
+        #toast-notification {
+            position: fixed;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            transition: top 0.3s ease-in-out;
+            z-index: 2000;
+            font-size: 14px;
+            border: 1px solid #2196F3;
+            pointer-events: none;
         }
 
-        select {
-            padding: 5px;
-            margin: 0 5px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            vertical-align: middle;
-            height: 30px;
-            /* Force height for alignment */
-        }
-
-        input.long {
-            width: 150px;
+        #toast-notification.show {
+            top: 20px;
         }
     </style>
 </head>
 
 <body>
-    <style>
-        /* New Layout Styles */
-        body,
-        html {
-            height: 100%;
-            margin: 0;
-            overflow: hidden;
-            /* Prevent body scroll */
-        }
+    <!-- Toast -->
+    <div id="toast-notification">Notification</div>
 
-        .main-layout {
-            display: grid;
-            grid-template-columns: 250px 1fr 350px;
-            height: 100vh;
-            gap: 10px;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-
-        .panel {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .panel-header {
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 5px;
-            color: #444;
-        }
-
-        .panel-content {
-            flex-grow: 1;
-            overflow-y: auto;
-        }
-
-        /* Toolbox Buttons Column */
-        .toolbox-btn {
-            display: block;
-            width: 100%;
-            margin-bottom: 10px;
-            padding: 12px;
-            text-align: left;
-            border: 1px solid #ddd;
-            background: #f8f9fa;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .toolbox-btn:hover {
-            background: #e9ecef;
-            transform: translateY(-1px);
-        }
-
-        /* Middle Canvas */
-        .script-list {
-            min-height: 100%;
-            padding-bottom: 50px;
-            /* Space for drag */
-        }
-
-        /* Right Monitor */
-        .monitor-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* Script Manager */
-        .script-manager {
-            margin-bottom: 15px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-
-        .script-select-row {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 5px;
-        }
-
-        .script-select-row select {
-            flex-grow: 1;
-            padding: 5px;
-        }
-    </style>
-    </head>
-
-    <body>
-        <div class="main-layout">
-            <!-- LEFT PANEL: Toolbox -->
-            <div class="panel">
-                <div class="panel-header">工具箱 (Toolbox)</div>
-                <div class="panel-content">
-                    <button class="toolbox-btn" onclick="addClick()" style="border-left: 5px solid #4CAF50;">+ 點擊
-                        (Click)</button>
-                    <button class="toolbox-btn" onclick="addSwipe()" style="border-left: 5px solid #2196F3;">+ 滑動
-                        (Swipe)</button>
-                    <button class="toolbox-btn" onclick="addWait()" style="border-left: 5px solid #FF9800;">+ 等待
-                        (Wait)</button>
-                    <button class="toolbox-btn" onclick="addFindClick()" style="border-left: 5px solid #9C27B0;">+ 找圖點擊
-                        (Find & Click)</button>
-                    <hr>
-
-                    <!-- Loop Category -->
-                    <button class="toolbox-btn" onclick="toggleLoopMenu()"
-                        style="background-color: #ede7f6; border-left: 5px solid #673AB7; color: #673AB7; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-                        <span>迴圈類別 (Loop)</span>
-                        <span id="loopMenuArrow">▼</span>
-                    </button>
-                    <div id="loopMenu"
-                        style="display: none; padding-left: 10px; border-left: 2px solid #ddd; margin-bottom: 10px;">
-                        <button class="toolbox-btn" onclick="addLoopBlock()" style="font-size: 0.9em;">+ 新增迴圈 (New
-                            Loop)</button>
-                        <button class="toolbox-btn" onclick="addLoopBreak()"
-                            style="font-size: 0.9em; background-color: #ffeba0; color: #795548;">+ 停止迴圈 (Stop
-                            Loop)</button>
-                    </div>
-
-                    <button class="toolbox-btn" onclick="addIfBlock()"
-                        style="background-color: #e0f2f1; border-left: 5px solid #009688; color: #009688; font-weight: bold;">+
-                        判斷區塊 (If)</button>
-
-                    <button class="toolbox-btn" onclick="addRunScript()"
-                        style="background-color: #fce4ec; border-left: 5px solid #E91E63; color: #E91E63; font-weight: bold;">+
-                        其他腳本 (Script)</button>
-                </div>
-            </div>
-
-            <!-- CENTER PANEL: Canvas -->
-            <div class="panel">
-                <div class="panel-header">
-                    腳本畫布 (Builder)
-                    <button onclick="clearScript()"
-                        style="float: right; font-size: 0.6em; background: #ff5252; color: white;">清空</button>
-                </div>
-                <div class="panel-content" style="background: #fafafa; border: 2px dashed #e0e0e0; border-radius: 4px;">
-                    <ul id="scriptList" class="script-list">
-                        <!-- Script items go here -->
-                    </ul>
-                </div>
-            </div>
-
-            <!-- RIGHT PANEL: Monitor & Controls -->
-            <div class="panel">
-                <div class="panel-header">控制台 (Monitor)</div>
-                <div class="panel-content">
-                    <!-- Script Storage UI -->
-                    <div class="script-manager">
-                        <strong>腳本存取 (Storage)</strong>
-                        <div class="script-select-row" style="margin-top: 5px;">
-                            <input id="scriptNameInput" placeholder="腳本名稱" style="width: 100%;">
-                            <button onclick="saveScript()" style="background:#4CAF50; color:white;">儲存</button>
-                        </div>
-                        <div class="script-select-row">
-                            <select id="savedScriptsSelect">
-                                <option value="">載入中...</option>
-                            </select>
-                            <button onclick="loadScript()" style="background:#2196F3; color:white;">讀取</button>
-                            <button onclick="deleteScript()" style="background:#ff5252; color:white;">刪除</button>
-                        </div>
-                    </div>
-
-                    <div class="monitor-controls">
-                        <button class="btn-run" onclick="runScript()">▶ 開始執行 (Run)</button>
-                        <button class="btn-stop" onclick="stopScript()">⏹ 停止 (Stop)</button>
-
-                        <button class="btn-capture" onclick="captureScreen()">📷 截圖預覽
-                            （查看畫面座標）</button>
-                    </div>
-
-                    <!-- Preview -->
-                    <div style="margin-top: 10px; text-align: center;">
-                        <div style="position: relative; display: inline-block; max-width: 100%;">
-                            <img id="screenPreview" src=""
-                                style="max-width: 100%; border: 1px solid #ccc; display: none;"
-                                onmousemove="showCoords(event)" onclick="lockCoords(event)">
-                            <div id="coordDisplay"
-                                style="position: absolute; top: 5px; left: 5px; background: rgba(0, 0, 0, 0.7); color: #fff; padding: 2px 5px; font-size: 0.8em; border-radius: 4px; display: none; pointer-events: none; z-index: 1000;">
-                                X:0, Y:0
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Logs -->
-                    <div style="margin-top: auto;">
-                        <strong>執行日誌:</strong>
-                        <div id="logConsole"
-                            style="background: #222; color: #0f0; padding: 5px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.8em; border-radius: 4px;">
-                            Waiting for logs...
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
-                        <button onclick="testConnection()" title="測試腳本器掛勾成功，點擊後模擬器應返回Home頁"
-                            style="width:48%; font-size: 0.8em;">掛勾測試</button>
-                        <button onclick="shutdownServer()"
-                            style="width:48%; font-size: 0.8em; background: #333; color: white;">關閉腳本器</button>
-                    </div>
-                </div>
-            </div>
+    <div id="main-layout">
+        <!-- Top Toolbar -->
+        <div id="toolbar">
+            <span style="font-weight:bold; margin-right:20px; font-size:16px;">BlueStacks Editor</span>
+            <button class="tool-btn primary" onclick="runGraph()">▶ 執行 (Run)</button>
+            <button class="tool-btn danger" onclick="stopScript()">⏹ 停止 (Stop)</button>
+            <button class="tool-btn" onclick="clearGraph()" style="margin-left:5px;">🧹 清空 (Clear)</button>
+            <div style="flex-grow:1"></div>
+            <input type="text" id="scriptName" placeholder="Script Name" style="width: 150px;">
+            <button class="tool-btn" onclick="saveGraph()">儲存 (Save)</button>
+            <select id="savedScripts" onchange="loadGraph(this.value)">
+                <option value="">載入腳本...</option>
+            </select>
+            <button class="tool-btn danger" onclick="deleteScript()" style="padding: 5px 10px;">🗑️</button>
         </div>
 
-        <script>
-            const list = document.getElementById('scriptList');
-            const logConsole = document.getElementById('logConsole');
+        <!-- Main Workspace -->
+        <div id="workspace">
+            <!-- Sidebar (Left) -->
+            <div id="sidebar">
+                <h3>流程控制</h3>
+                <button class="node-btn btn-start" onclick="addNode('bot/start')">🏁 開始 (Start)</button>
+                <button class="node-btn btn-wait" onclick="addNode('bot/wait')">⏳ 等待 (Wait)</button>
+                <button class="node-btn btn-loop" onclick="addNode('bot/loop')">🔄 迴圈 (Loop)</button>
+                <button class="node-btn btn-break" onclick="addNode('bot/loop_break')">🛑 跳出迴圈 (Break)</button>
+                <button class="node-btn btn-script" onclick="addNode('bot/script')">📜 呼叫腳本 (Call Script)</button>
 
-            // Initialize Sortable
-            function initSortable(el) {
-                new Sortable(el, {
-                    group: 'nested', // share group to allow dragging between lists
-                    animation: 150,
-                    fallbackOnBody: true,
-                    swapThreshold: 0.65
+                <h3>基本動作</h3>
+                <button class="node-btn btn-click" onclick="addNode('bot/click')">🖱️ 點擊 (Click)</button>
+                <button class="node-btn btn-swipe" onclick="addNode('bot/swipe')">👆 滑動 (Swipe)</button>
+
+                <h3>視覺辨識</h3>
+                <button class="node-btn btn-find" onclick="addNode('bot/find_image')">🖼️ 找圖 (Find Image)</button>
+            </div>
+
+            <!-- Canvas (Center) -->
+            <div id="editor-container">
+                <canvas id="mycanvas"></canvas>
+            </div>
+
+            <!-- Monitor (Right) -->
+            <div id="monitor-panel">
+                <h3>監控與操作</h3>
+
+                <div class="monitor-frame">
+                    <img id="screenPreview" src="" onmousemove="showCoords(event)" onclick="pickCoords(event)">
+                    <div id="coordDisplay">X:0, Y:0</div>
+                    <div id="loadingText" style="color:#666">No Image</div>
+                </div>
+
+                <button class="tool-btn block" onclick="captureScreen()">📷 截圖 (Refresh Screen)</button>
+                <div style="font-size:0.8em; color:#888; margin-bottom:10px; text-align:center;">
+                    點擊畫面: 鎖定座標 / 填入選取的節點
+                </div>
+
+                <hr style="width:100%; border:0; border-top:1px solid #444;">
+
+                <button class="tool-btn block" onclick="testConnection()">🔌 測試連線 (Test)</button>
+                <button class="tool-btn block danger" onclick="shutdownServer()">⚠️ 關閉伺服器 (Shutdown)</button>
+
+                <h3>執行日誌</h3>
+                <div id="logConsole">Waiting for logs...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Init LiteGraph
+        var graph = new LGraph();
+        var canvas = new LGraphCanvas("#mycanvas", graph);
+
+        function resize() {
+            var container = document.getElementById("editor-container");
+            if (container) {
+                canvas.resize(container.clientWidth, container.clientHeight);
+                graph.setDirtyCanvas(true, true);
+            }
+        }
+        window.addEventListener("resize", resize);
+        setTimeout(resize, 100);
+
+        // --- GLOBAL STATE ---
+        var isCoordsLocked = false;
+        var toastTimeout = null;
+
+        // --- TOAST NOTIFICATION ---
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById("toast-notification");
+            toast.innerText = message;
+            toast.classList.add("show");
+
+            if (type === 'error') {
+                toast.style.borderColor = '#ff4444';
+            } else {
+                toast.style.borderColor = '#2196F3';
+            }
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove("show");
+            }, 2000);
+        }
+
+        // --- CUSTOM NODES ---
+
+        // 1. Start
+        function NodeStart() {
+            this.addOutput("Exec", "ACTION");
+            this.title = "▶ Start";
+            this.bgcolor = "#2e7d32";
+        }
+        NodeStart.title = "Start";
+        LiteGraph.registerNodeType("bot/start", NodeStart);
+
+        // 2. Click
+        function NodeClick() {
+            this.addInput("Exec", "ACTION");
+            this.addOutput("Exec", "ACTION");
+            this.addInput("X", "number");
+            this.addInput("Y", "number");
+            this.properties = { x: 500, y: 500 };
+            this.addWidget("number", "X", 500, function (v) { this.properties.x = v; }, { min: 0, max: 9999, precision: 0 });
+            this.addWidget("number", "Y", 500, function (v) { this.properties.y = v; }, { min: 0, max: 9999, precision: 0 });
+            this.title = "Click";
+        }
+        NodeClick.title = "Click";
+        NodeClick.prototype.onExecute = function () { this.triggerSlot(0); }
+
+        NodeClick.prototype.updateWidgetState = function () {
+            if (this.widgets) {
+                if (this.widgets[0]) this.widgets[0].disabled = this.isInputConnected(1);
+                if (this.widgets[1]) this.widgets[1].disabled = this.isInputConnected(2);
+            }
+        };
+
+        NodeClick.prototype.onConnectionsChange = function (type, slot, connected, link_info, input_info) {
+            if (type === LiteGraph.INPUT) {
+                this.updateWidgetState();
+            }
+        };
+
+        NodeClick.prototype.onConfigure = function () {
+            if (this.widgets) {
+                if (this.widgets[0]) this.widgets[0].value = this.properties.x;
+                if (this.widgets[1]) this.widgets[1].value = this.properties.y;
+            }
+            this.updateWidgetState();
+        };
+        LiteGraph.registerNodeType("bot/click", NodeClick);
+
+        // 3. Swipe
+        function NodeSwipe() {
+            this.addInput("Exec", "ACTION");
+            this.addInput("X1", "number");
+            this.addInput("Y1", "number");
+            this.addInput("X2", "number");
+            this.addInput("Y2", "number");
+            this.addOutput("Exec", "ACTION");
+            this.properties = { x1: 500, y1: 800, x2: 500, y2: 200, duration: 500 };
+            this.addWidget("number", "X1", 500, function (v) { this.properties.x1 = v; });
+            this.addWidget("number", "Y1", 800, function (v) { this.properties.y1 = v; });
+            this.addWidget("number", "X2", 500, function (v) { this.properties.x2 = v; });
+            this.addWidget("number", "Y2", 200, function (v) { this.properties.y2 = v; });
+            this.addWidget("number", "Time(ms)", 500, function (v) { this.properties.duration = v; });
+            this.title = "Swipe";
+            this.bgcolor = "#2196F3";
+        }
+        NodeSwipe.title = "Swipe";
+
+        NodeSwipe.prototype.updateWidgetState = function () {
+            if (this.widgets) {
+                if (this.widgets[0]) this.widgets[0].disabled = this.isInputConnected(1);
+                if (this.widgets[1]) this.widgets[1].disabled = this.isInputConnected(2);
+                if (this.widgets[2]) this.widgets[2].disabled = this.isInputConnected(3);
+                if (this.widgets[3]) this.widgets[3].disabled = this.isInputConnected(4);
+            }
+        };
+
+        NodeSwipe.prototype.onConnectionsChange = function (type, slot, connected, link_info, input_info) {
+            if (type === LiteGraph.INPUT) {
+                this.updateWidgetState();
+            }
+        };
+
+        NodeSwipe.prototype.onConfigure = function () {
+            if (this.widgets) {
+                if (this.widgets[0]) this.widgets[0].value = this.properties.x1;
+                if (this.widgets[1]) this.widgets[1].value = this.properties.y1;
+                if (this.widgets[2]) this.widgets[2].value = this.properties.x2;
+                if (this.widgets[3]) this.widgets[3].value = this.properties.y2;
+                if (this.widgets[4]) this.widgets[4].value = this.properties.duration;
+            }
+            this.updateWidgetState();
+        };
+        LiteGraph.registerNodeType("bot/swipe", NodeSwipe);
+
+        // 4. Wait
+        function NodeWait() {
+            this.addInput("Exec", "ACTION");
+            this.addOutput("Exec", "ACTION");
+            this.properties = { seconds: 1.0 };
+            this.addWidget("number", "Seconds", 1.0, function (v) { this.properties.seconds = v; }, { step: 0.1, min: 0 });
+            this.title = "Wait";
+        }
+        NodeWait.title = "Wait";
+        NodeWait.prototype.onConfigure = function () {
+            if (this.widgets && this.widgets[0]) {
+                this.widgets[0].value = this.properties.seconds;
+            }
+        };
+        LiteGraph.registerNodeType("bot/wait", NodeWait);
+
+        // 5. Loop (Updated)
+        function NodeLoop() {
+            this.addInput("Exec", "ACTION");
+            this.addOutput("Body", "ACTION");
+            this.addOutput("Exit", "ACTION");
+            this.properties = { count: 3 };
+            this.addWidget("number", "Count (0=Inf)", 3, function (v) {
+                var val = Math.max(0, Math.floor(v));
+                this.properties.count = val;
+                // Force UI to show integer
+                if (this.widgets && this.widgets[0]) this.widgets[0].value = val;
+            }, { min: 0, step: 10, precision: 0 });
+            this.title = "Loop";
+            this.bgcolor = "#673AB7";
+        }
+        NodeLoop.title = "Loop";
+        NodeLoop.prototype.onConfigure = function () {
+            if (this.widgets && this.widgets[0]) {
+                this.widgets[0].value = this.properties.count;
+            }
+        };
+        LiteGraph.registerNodeType("bot/loop", NodeLoop);
+
+        // 6. Call Script (NEW)
+        function NodeScript() {
+            this.addInput("Exec", "ACTION");
+            this.addOutput("Exec", "ACTION");
+            this.properties = { scriptName: "" };
+            var that = this;
+            this.addWidget("text", "Script", "", function (v) { that.properties.scriptName = v; });
+            this.title = "Call Script";
+            this.bgcolor = "#E91E63";
+        }
+        NodeScript.title = "Call Script";
+        NodeScript.prototype.onConfigure = function () {
+            if (this.widgets && this.widgets[0]) {
+                this.widgets[0].value = this.properties.scriptName;
+            }
+        };
+        LiteGraph.registerNodeType("bot/script", NodeScript);
+
+        // 6.5 Loop Break (NEW)
+        function NodeLoopBreak() {
+            this.addInput("Exec", "ACTION");
+            this.title = "Break Loop";
+            this.bgcolor = "#b71c1c";
+        }
+        NodeLoopBreak.title = "Break Loop";
+        LiteGraph.registerNodeType("bot/loop_break", NodeLoopBreak);
+
+        // 7. Find Image (Updated for Menu & Data Flow)
+        function NodeFindImage() {
+            this.addInput("Exec", "ACTION");
+            this.addOutput("Found", "ACTION");
+            this.addOutput("Not Found", "ACTION");
+            this.addOutput("X", "number");
+            this.addOutput("Y", "number");
+            this.properties = { template: "", algorithm: "auto" };
+            this.title = "Find Image";
+            this.bgcolor = "#1565c0";
+            var that = this;
+
+            // Button acts as both trigger and display (Index 0)
+            this.widget_btn = this.addWidget("button", "Select Image...", null, function (v, canvas, node, pos, event) {
+                fetchImageMenu(event, function (path) {
+                    that.properties.template = path;
+                    that.widget_btn.name = path; // Update button label
+                    that.setDirtyCanvas(true, true);
                 });
-            }
-
-            // Init main list
-            initSortable(list);
-
-            // Poll logs every second
-            setInterval(() => {
-                fetch('/logs')
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.logs && data.logs.length > 0) {
-                            // Format logs locally
-                            const formattedLogs = data.logs.map(log => {
-                                // Check if log is object (new format) or string (old format legacy support)
-                                if (typeof log === 'object' && log.timestamp) {
-                                    const localTime = new Date(log.timestamp).toLocaleTimeString();
-                                    return `[${localTime}] ${log.message}`;
-                                } else {
-                                    return log;
-                                }
-                            });
-
-                            logConsole.innerHTML = formattedLogs.join('<br>');
-                            logConsole.scrollTop = logConsole.scrollHeight;
-                        }
-                    })
-                    .catch(err => console.error("Log fetch error", err));
-            }, 1000);
-
-            // Pre-fetch images
-            let availableImages = [];
-            // Pre-fetch scripts
-            let availableScriptsList = [];
-
-            function fetchImages() {
-                return fetch('/images')
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.images) {
-                            availableImages = data.images;
-                            refreshAllSelects();
-                        }
-                    })
-                    .catch(err => console.error("Failed to fetch images", err));
-            }
-
-            // Initial fetch
-            fetchImages().then(() => refreshSavedScripts());
-
-            function updateSelectOptions(selectElement, selectedValue) {
-                selectElement.innerHTML = '';
-
-                if (availableImages.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.text = "無圖片 (imagesDir Empty)";
-                    selectElement.add(opt);
-                    return;
-                }
-
-                availableImages.forEach(img => {
-                    const opt = document.createElement('option');
-                    opt.value = "images/" + img; // Path relative to script execution
-                    opt.text = img;
-                    if (opt.value === selectedValue) opt.selected = true;
-                    selectElement.add(opt);
-                });
-            }
-
-            function updateScriptSelectOptions(selectElement, selectedValue) {
-                selectElement.innerHTML = '';
-                if (availableScriptsList.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.text = "無腳本 (No saved scripts)";
-                    selectElement.add(opt);
-                    return;
-                }
-                availableScriptsList.forEach(name => {
-                    const opt = document.createElement('option');
-                    opt.value = name;
-                    opt.text = name;
-                    if (opt.value === selectedValue) opt.selected = true;
-                    selectElement.add(opt);
-                });
-            }
-
-            // Auto-fill script name on selection
-            document.getElementById('savedScriptsSelect').addEventListener('change', function () {
-                const val = this.value;
-                if (val) document.getElementById('scriptNameInput').value = val;
             });
 
-            function refreshAllSelects() {
-                document.querySelectorAll('.inp-template-select').forEach(sel => {
-                    const currentVal = sel.value;
-                    updateSelectOptions(sel, currentVal);
-                });
+            // Algorithm Combo (Index 1)
+            this.addWidget("combo", "Algo", "auto", function (v) {
+                that.properties.algorithm = v;
+            }, { values: ["auto", "sift", "template"] });
+
+            this.size = this.computeSize();
+        }
+        NodeFindImage.title = "Find Image";
+
+        // Render description logic
+        NodeFindImage.prototype.onDrawForeground = function (ctx) {
+            if (this.flags.collapsed) return;
+
+            ctx.fillStyle = "#ccc";
+            ctx.font = "10px Arial";
+            var algo = this.properties.algorithm;
+            var text = "";
+            if (algo === 'sift') text = "ℹ️ SIFT: Robust (Scale/Rot)";
+            else if (algo === 'template') text = "ℹ️ Template: Exact Match (Fast)";
+            else text = "ℹ️ Auto: SIFT first, then Template";
+
+            ctx.fillText(text, 5, this.size[1] + 15); // Draw below the node
+        };
+
+        // Restore label on load
+        NodeFindImage.prototype.onConfigure = function () {
+            if (this.properties.template && this.widgets && this.widgets[0]) {
+                this.widgets[0].name = this.properties.template;
             }
-
-            function refreshAllScriptSelects() {
-                document.querySelectorAll('.inp-script-select').forEach(sel => {
-                    const currentVal = sel.value;
-                    updateScriptSelectOptions(sel, currentVal);
-                });
+            if (this.properties.algorithm && this.widgets && this.widgets[1]) {
+                this.widgets[1].value = this.properties.algorithm;
             }
-
-            // --- COORDINATE PICKER SYSTEM ---
-
-            let activePickerItem = null;
-            let pickPhase = 0; // 0=None, 1=Click/SwipeStart, 2=SwipeEnd
-
-            function togglePickMode(btn, type) {
-                const item = btn.closest('.script-item');
-
-                // If clicking same item, cancel
-                if (activePickerItem === item) {
-                    deactivatePickMode();
-                    return;
-                }
-
-                // If another item was active, deactivate it first
-                if (activePickerItem) {
-                    deactivatePickMode();
-                }
-
-                // Activate this item
-                activePickerItem = item;
-                item.style.border = "3px solid #ff5722"; // Visual Highlight
-                item.style.backgroundColor = "#fff3e0";
-
-                // Set phase
-                if (type === 'swipe') {
-                    pickPhase = 1;
-                    btn.innerText = "🎯 起點 (Start)";
-                    btn.style.backgroundColor = "#ff5722";
-                    btn.style.color = "white";
-                } else {
-                    pickPhase = 1;
-                    btn.innerText = "🎯 選取中 (Picking)";
-                    btn.style.backgroundColor = "#ff5722";
-                    btn.style.color = "white";
-                }
-            }
-
-            function deactivatePickMode() {
-                if (!activePickerItem) return;
-
-                // Reset style
-                activePickerItem.style.border = "";
-                activePickerItem.style.backgroundColor = "";
-
-                // Reset Button text
-                const btn = activePickerItem.querySelector('.btn-pick');
-                if (btn) {
-                    btn.innerText = "🎯";
-                    btn.style.backgroundColor = "";
-                    btn.style.color = "";
-                }
-
-                activePickerItem = null;
-                pickPhase = 0;
-            }
-
-            function getScaledCoords(event, img) {
-                const rect = img.getBoundingClientRect();
-                const scaleX = img.naturalWidth / rect.width;
-                const scaleY = img.naturalHeight / rect.height;
-
-                return {
-                    x: Math.round(event.offsetX * scaleX),
-                    y: Math.round(event.offsetY * scaleY)
-                };
-            }
-
-            function lockCoords(event) {
-                const img = document.getElementById('screenPreview');
-
-                if (activePickerItem) {
-                    // Picking Mode logic
-                    const coords = getScaledCoords(event, img);
-                    const type = activePickerItem.dataset.type;
-                    const btn = activePickerItem.querySelector('.btn-pick');
-
-                    if (type === 'click') {
-                        activePickerItem.querySelector('.inp-x').value = coords.x;
-                        activePickerItem.querySelector('.inp-y').value = coords.y;
-
-                        // Auto-finish for click
-                        deactivatePickMode();
-
-                    } else if (type === 'swipe') {
-                        if (pickPhase === 1) {
-                            activePickerItem.querySelector('.inp-x1').value = coords.x;
-                            activePickerItem.querySelector('.inp-y1').value = coords.y;
-
-                            pickPhase = 2;
-                            if (btn) btn.innerText = "🎯 終點 (End)";
-
-                        } else if (pickPhase === 2) {
-                            activePickerItem.querySelector('.inp-x2').value = coords.x;
-                            activePickerItem.querySelector('.inp-y2').value = coords.y;
-
-                            // Finish
-                            deactivatePickMode();
-                        }
-                    }
-
-                } else {
-                    // Original Lock Logic
-                    const display = document.getElementById('coordDisplay');
-                    if (display.dataset.locked === "true") {
-                        display.dataset.locked = "false";
-                        display.style.border = "none";
-                        display.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
-                    } else {
-                        display.dataset.locked = "true";
-                        display.style.border = "2px solid red";
-                        display.style.backgroundColor = "rgba(255, 0, 0, 0.7)";
-                    }
-                }
-            }
-
-            function showCoords(event) {
-                const display = document.getElementById('coordDisplay');
-                if (display.dataset.locked === "true") return;
-
-                const img = document.getElementById('screenPreview');
-                const coords = getScaledCoords(event, img);
-
-                display.innerText = `X:${coords.x}, Y:${coords.y}`;
-                display.style.display = 'block';
-
-                const xView = event.offsetX;
-                const yView = event.offsetY;
-                const containerWidth = img.parentElement.offsetWidth;
-
-                if (xView > containerWidth - 100) {
-                    display.style.left = (xView - 100) + 'px';
-                } else {
-                    display.style.left = (xView + 10) + 'px';
-                }
-                display.style.top = (yView + 10) + 'px';
-            }
-
-            // Create standard linear item
-            function createItem(html, type, target = null) {
-                const t = target || list;
-                const li = document.createElement('li');
-                li.className = 'script-item';
-                li.dataset.type = type;
-
-                let btnHtml = '';
-                if (type === 'click' || type === 'swipe') {
-                    // Prevent sortable drag when clicking this button? Sortable handles handle option usually, 
-                    // but here we just need onclick propagation stop if needed. 
-                    // Note: togglePickMode uses 'this'.
-                    btnHtml = `<button class="btn-pick" onclick="togglePickMode(this, '${type}'); event.stopPropagation();" style="margin-right:8px; padding: 4px 6px; font-size: 1em; cursor: pointer; border: 1px solid #ccc; background: #fff;">🎯</button>`;
-                }
-
-                li.innerHTML = `
-                <div class="item-details" style="display:flex; align-items:center;">
-                    ${btnHtml}
-                    <div style="flex-grow:1;">${html}</div>
-                </div>
-                <button class="item-remove" onclick="this.closest('.script-item').remove()">X</button>
-            `;
-                t.appendChild(li);
-            }
-
-            // Create nested container item
-            function createContainer(type, headerHtml, color, target = null) {
-                const t = target || list;
-                const li = document.createElement('li');
-                li.className = 'block-container';
-                li.dataset.type = type;
-
-                li.innerHTML = `
-                <div class="block-header" style="background-color: ${color}">
-                    <span>${headerHtml}</span>
-                    <button class="item-remove" onclick="this.closest('.block-container').remove()">X</button>
-                </div>
-                <div class="block-body">
-                    <ul class="nested-list"></ul>
-                </div>
-            `;
-
-                t.appendChild(li);
-                // Initialize Sortable for the new nested list
-                initSortable(li.querySelector('.nested-list'));
-                // Scroll to bottom only if interactive
-                if (!target) li.scrollIntoView({ behavior: 'smooth' });
-            }
-
-            function createIfBlockInternalVisual(template, condition, target = null, clickTarget = true) {
-                const t = target || list;
-                const li = document.createElement('li');
-                li.className = 'block-container';
-                li.dataset.type = 'if_block';
-
-                // Initial options might be empty, will be filled by updateSelectOptions
-                const shortName = template.replace('images/', '');
-
-                // Determine selected state
-                const isNot = (condition === 'not_found') ? 'selected' : '';
-                const isFound = (condition !== 'not_found') ? 'selected' : '';
-
-                // Click check
-                const isClick = clickTarget ? 'checked' : '';
-
-                li.innerHTML = `
-                <div class="block-header" style="background-color: #009688">
-                    <div style="display:flex; align-items:center; gap:5px;">
-                        <span>如果 (If)</span>
-                        <select class="inp-condition" onclick="event.stopPropagation()">
-                            <option value="found" ${isFound}>找到 (Found)</option>
-                            <option value="not_found" ${isNot}>沒找到 (Not Found)</option>
-                        </select>
-                         <span class="select-container"></span>
-                         <label style="font-size:0.9em; display:flex; align-items:center;">
-                            <input type="checkbox" class="inp-click" ${isClick} onclick="event.stopPropagation()"> 點擊
-                         </label>
-                    </div>
-                    <button class="item-remove" onclick="this.closest('.block-container').remove()">X</button>
-                </div>
-                <div class="block-body"><ul class="nested-list"></ul></div>
-            `;
-
-                const select = document.createElement('select');
-                select.className = 'inp-template-select long';
-                select.onclick = (e) => e.stopPropagation();
-
-                // Add option manually first to ensure value persists
-                const opt = document.createElement('option');
-                opt.value = template;
-                opt.text = shortName;
-                opt.selected = true;
-                select.add(opt);
-
-                li.querySelector('.select-container').appendChild(select);
-                t.appendChild(li);
-                initSortable(li.querySelector('.nested-list'));
-
-                // If images are already loaded, update full list
-                if (availableImages.length > 0) {
-                    updateSelectOptions(select, template);
-                }
-            }
-
-            function addRunScript() {
-                const li = document.createElement('li');
-                li.className = 'script-item';
-                li.dataset.type = 'run_script';
-                li.style.borderLeft = "5px solid #E91E63";
-
-                const select = document.createElement('select');
-                select.className = 'inp-script-select long';
-                updateScriptSelectOptions(select, '');
-
-                li.innerHTML = `
-                    <div class="item-details">
-                        <strong>呼叫其他腳本 (Run Script)</strong> 
-                        腳本名稱: <span class="select-container"></span>
-                    </div>
-                    <button class="item-remove" onclick="this.parentElement.remove()">X</button>
-                `;
-
-                li.querySelector('.select-container').appendChild(select);
-                list.appendChild(li);
-                li.scrollIntoView({ behavior: 'smooth' });
-            }
-
-            function addClick() {
-                createItem(`
-                <strong>點擊</strong> 
-                X: <input type="number" class="inp-x" value="500"> 
-                Y: <input type="number" class="inp-y" value="500">
-            `, 'click');
-            }
-
-            function addSwipe() {
-                createItem(`
-                <strong>滑動</strong> 
-                X1: <input type="number" class="inp-x1" value="500"> 
-                Y1: <input type="number" class="inp-y1" value="800">
-                ->
-                X2: <input type="number" class="inp-x2" value="500"> 
-                Y2: <input type="number" class="inp-y2" value="200">
-                時間(ms): <input type="number" class="inp-duration" value="500">
-            `, 'swipe');
-            }
-
-            function addWait() {
-                createItem(`
-                <strong>等待</strong> 
-                秒數: <input type="number" class="inp-seconds" value="1">
-            `, 'wait');
-            }
-
-            function addFindClick() {
-                fetchImages().then(() => {
-                    const li = document.createElement('li');
-                    li.className = 'script-item';
-                    li.dataset.type = 'find_click';
-
-                    const select = document.createElement('select');
-                    select.className = 'inp-template-select long';
-                    updateSelectOptions(select, '');
-
-                    li.innerHTML = `
-                    <div class="item-details">
-                        <strong>找圖點擊</strong> 
-                        檔名: <span class="select-container"></span>
-                    </div>
-                    <button class="item-remove" onclick="this.parentElement.remove()">X</button>
-                `;
-
-                    li.querySelector('.select-container').appendChild(select);
-                    list.appendChild(li);
-                });
-            }
-
-            function toggleLoopMenu() {
-                const menu = document.getElementById('loopMenu');
-                const arrow = document.getElementById('loopMenuArrow');
-                if (menu.style.display === 'none') {
-                    menu.style.display = 'block';
-                    arrow.innerText = '▲';
-                } else {
-                    menu.style.display = 'none';
-                    arrow.innerText = '▼';
-                }
-            }
-
-            function updateLoopHeader(input) {
-                const val = parseInt(input.value);
-                const span = input.previousElementSibling; // "重複 " or equivalent text
-                // Actually structure is: "重複 " <input> " 次"
-                // We'll just check value.
-                // Better approach: changing the text layout slightly.
-            }
-
-            function onLoopCountChange(input) {
-                const val = parseInt(input.value);
-                // We can maybe change the "次" text to "無限 (Infinite)" if 0
-                // For simplicity, let's just trust the user knows 0 is infinite or add a label hint dynamically
-                const suffix = input.nextElementSibling; // The text node " 次" might be a span or just text
-                // Since createContainer uses innerHTML string, it's hard to target specific text node easily without spans.
-                // Let's modify createContainer or addLoopBlock to separate them.
-            }
-
-            function addLoopBlock() {
-                // Modified to support 0 and dynamic label
-                const li = document.createElement('li');
-                li.className = 'block-container';
-                li.dataset.type = 'loop_block';
-                const color = '#673AB7';
-
-                li.innerHTML = `
-                    <div class="block-header" style="background-color: ${color}">
-                        <div style="display:flex; align-items:center; gap: 5px;">
-                            <span>迴圈 (Loop) - 重複</span>
-                            <input type="number" class="inp-count" value="5" min="0" onclick="event.stopPropagation()" oninput="checkLoopInfinite(this)">
-                            <span class="loop-suffix">次 (0為無限)</span>
-                        </div>
-                        <button class="item-remove" onclick="this.closest('.block-container').remove()">X</button>
-                    </div>
-                    <div class="block-body">
-                        <ul class="nested-list"></ul>
-                    </div>
-                `;
-
-                list.appendChild(li);
-                initSortable(li.querySelector('.nested-list'));
-                li.scrollIntoView({ behavior: 'smooth' });
-
-                // Initial check for border
-                checkLoopInfinite(li.querySelector('.inp-count'));
-            }
-
-            function checkLoopInfinite(input) {
-                const val = parseInt(input.value);
-                // Text is now static
-                if (val === 0) {
-                    input.style.borderColor = "#ffeb3b";
-                    input.style.backgroundColor = "#fff9c4";
-                } else {
-                    input.style.borderColor = "";
-                    input.style.backgroundColor = "";
-                }
-            }
-
-            function addLoopBreak() {
-                createItem(`
-                    <strong style="color: #d32f2f;">停止迴圈 (Break Loop)</strong>
-                `, 'loop_break');
-            }
-
-            // ... (keep addIfBlock and clearScript) ...
-            function addIfBlock() {
-                fetchImages().then(() => {
-                    createIfBlockInternalVisual('', 'found', null, true);
-                    list.lastElementChild.scrollIntoView({ behavior: 'smooth' });
-                });
-            }
-
-            function clearScript() {
-                if (confirm('確定要清空腳本嗎?')) {
-                    document.getElementById('scriptList').innerHTML = '';
-                }
-            }
-
-            // --- SCRIPT SERIALIZATION ---
-
-            function serializeScript(element) {
-                let actions = [];
-                const children = element.children;
-
-                for (let i = 0; i < children.length; i++) {
-                    const item = children[i];
-                    const type = item.dataset.type;
-
-                    if (!type) continue;
-
-                    if (type === 'run_script') {
-                        const scriptName = item.querySelector('.inp-script-select').value;
-                        actions.push({ type: 'run_script', script_name: scriptName });
-                        continue;
-                    }
-
-                    if (type === 'loop_block') {
-                        // Loop Start
-                        const count = item.querySelector('.inp-count').value;
-                        actions.push({ type: 'loop_start', count: count });
-
-                        // Recursive Body
-                        const nestedList = item.querySelector('.nested-list');
-                        const childActions = serializeScript(nestedList);
-                        actions = actions.concat(childActions);
-
-                        // Loop End
-                        actions.push({ type: 'loop_end' });
-
-                    } else if (type === 'loop_break') {
-                        actions.push({ type: 'loop_break' });
-
-                    } else if (type === 'if_block') {
-                        // If Found
-                        const template = item.querySelector('.inp-template-select').value;
-                        const condition = item.querySelector('.inp-condition') ? item.querySelector('.inp-condition').value : 'found';
-                        const clickTarget = item.querySelector('.inp-click') ? item.querySelector('.inp-click').checked : true;
-                        actions.push({ type: 'if_found', template: template, condition: condition, click_target: clickTarget });
-
-                        // Recursive Body
-                        const nestedList = item.querySelector('.nested-list');
-                        const childActions = serializeScript(nestedList);
-                        actions = actions.concat(childActions);
-
-                        // If End
-                        actions.push({ type: 'if_end' });
-
-                    } else {
-                        // Normal Item
-                        const data = { type: type };
-                        if (type === 'click') {
-                            data.x = item.querySelector('.inp-x').value;
-                            data.y = item.querySelector('.inp-y').value;
-                        } else if (type === 'swipe') {
-                            data.x1 = item.querySelector('.inp-x1').value;
-                            data.y1 = item.querySelector('.inp-y1').value;
-                            data.x2 = item.querySelector('.inp-x2').value;
-                            data.y2 = item.querySelector('.inp-y2').value;
-                            data.duration = item.querySelector('.inp-duration').value;
-                        } else if (type === 'wait') {
-                            data.seconds = item.querySelector('.inp-seconds').value;
-                        } else if (type === 'find_click') {
-                            data.template = item.querySelector('.inp-template-select').value;
-                        }
-                        actions.push(data);
-                    }
-                }
-                return actions;
-            }
-
-            // --- SAVE / LOAD SYSTEM ---
-
-            function refreshSavedScripts() {
-                fetch('/api/scripts')
-                    .then(res => res.json())
-                    .then(data => {
-                        const sel = document.getElementById('savedScriptsSelect');
-                        sel.innerHTML = '<option value="">-- 選擇腳本 --</option>';
-                        if (data.scripts) {
-                            availableScriptsList = data.scripts; // Update global list
-                            data.scripts.forEach(name => {
-                                const opt = document.createElement('option');
-                                opt.value = name;
-                                opt.text = name;
-                                sel.add(opt);
-                            });
-                            refreshAllScriptSelects(); // Update canvas dropdowns
-                        }
-                    })
-                    .catch(err => console.error("Failed to fetch scripts", err));
-            }
-
-            function saveScript() {
-                const name = document.getElementById('scriptNameInput').value.trim();
-                if (!name) {
-                    alert("請輸入腳本名稱");
-                    return;
-                }
-
-                const listRoot = document.getElementById('scriptList');
-                const actions = serializeScript(listRoot);
-
-                if (actions.length === 0) {
-                    if (!confirm("腳本內容為空，確定要儲存嗎？")) return;
-                }
-
-                fetch('/api/scripts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, content: actions })
+            this.size = this.computeSize();
+        };
+        LiteGraph.registerNodeType("bot/find_image", NodeFindImage);
+
+        // --- IMAGE MENU LOGIC ---
+        var imageTreeCache = null;
+
+        function fetchImageMenu(event, callback) {
+            // Load if not loaded
+            fetch('/api/images')
+                .then(r => r.json())
+                .then(data => {
+                    imageTreeCache = data.images;
+                    const menuOptions = buildLiteGraphMenu(imageTreeCache, callback);
+                    new LiteGraph.ContextMenu(menuOptions, { event: event });
                 })
-                    .then(res => res.json())
-                    .then(data => {
-                        alert(data.message || (data.error));
-                        refreshSavedScripts();
-                    })
-                    .catch(err => alert("Error saving: " + err));
-            }
+                .catch(e => showToast("Error loading images: " + e, 'error'));
+        }
 
-            function deleteScript() {
-                const name = document.getElementById('savedScriptsSelect').value;
-                if (!name) {
-                    alert("請先選擇要刪除的腳本");
-                    return;
-                }
-
-                if (!confirm(`確定要刪除腳本 "${name}" 嗎？`)) return;
-
-                fetch(`/api/scripts/${name}`, { method: 'DELETE' })
-                    .then(res => res.json())
-                    .then(data => {
-                        alert(data.message || data.error);
-                        refreshSavedScripts();
-                        document.getElementById('savedScriptsSelect').value = "";
-                    })
-                    .catch(err => alert("Error deleting: " + err));
-            }
-
-            function loadScript() {
-                const name = document.getElementById('savedScriptsSelect').value;
-                if (!name) return;
-
-                if (document.getElementById('scriptList').children.length > 0) {
-                    if (!confirm("載入腳本將會覆蓋當前畫布，確定繼續嗎？")) return;
-                }
-
-                fetch(`/api/scripts/${name}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.content) {
-                            reconstructScript(data.content);
-                        } else {
-                            alert("Failed to load: " + (data.error || "Unknown error"));
+        function buildLiteGraphMenu(tree, callback) {
+            // Convert tree to ContextMenu format:
+            // [{ content: "Label", callback: ... }, { content: "Folder", submenu: { options: [...] } }]
+            return tree.map(item => {
+                if (item.type === 'folder') {
+                    return {
+                        content: "📁 " + item.name,
+                        submenu: {
+                            options: buildLiteGraphMenu(item.children, callback)
                         }
-                    })
-                    .catch(err => alert("Error loading: " + err));
-            }
-
-            function reconstructScript(actions, parentElement = null) {
-                const target = parentElement || list;
-                if (!parentElement) target.innerHTML = '';
-
-                // We use a helper function to consume the flat list recursively
-                reconstructComplex(actions, 0, target, null);
-            }
-
-            function reconstructComplex(actions, startIndex, targetList, terminatorType) {
-                let i = startIndex;
-                while (i < actions.length) {
-                    const action = actions[i];
-
-                    // Check for terminator (loop_end or if_end)
-                    if (terminatorType && action.type === terminatorType) {
-                        return i + 1; // Return index after terminator to continue parent loop
-                    }
-
-                    if (action.type === 'run_script') {
-                        // Manual creation
-                        const li = document.createElement('li');
-                        li.className = 'script-item';
-                        li.dataset.type = 'run_script';
-                        li.style.borderLeft = "5px solid #E91E63";
-
-                        const select = document.createElement('select');
-                        select.className = 'inp-script-select long';
-
-                        // Populate based on available scripts, or just add the current value if list is empty
-                        updateScriptSelectOptions(select, action.script_name);
-
-                        li.innerHTML = `
-                            <div class="item-details">
-                                <strong>呼叫其他腳本 (Run Script)</strong> 
-                                腳本名稱: <span class="select-container"></span>
-                            </div>
-                            <button class="item-remove" onclick="this.parentElement.remove()">X</button>
-                        `;
-
-                        li.querySelector('.select-container').appendChild(select);
-                        targetList.appendChild(li);
-
-                        i++;
-                        continue;
-                    }
-
-                    if (action.type === 'loop_start') {
-                        // Manual creation to match addLoopBlock HTML
-                        const li = document.createElement('li');
-                        li.className = 'block-container';
-                        li.dataset.type = 'loop_block';
-                        const color = '#673AB7';
-
-                        const countVal = action.count;
-                        const borderStyle = (parseInt(countVal) === 0) ? "border-color: #ffeb3b; background-color: #fff9c4;" : "";
-
-                        li.innerHTML = `
-                            <div class="block-header" style="background-color: ${color}">
-                                <div style="display:flex; align-items:center; gap: 5px;">
-                                    <span>迴圈 (Loop) - 重複</span>
-                                    <input type="number" class="inp-count" value="${countVal}" min="0" 
-                                           onclick="event.stopPropagation()" oninput="checkLoopInfinite(this)"
-                                           style="${borderStyle}">
-                                    <span class="loop-suffix">次 (0為無限)</span>
-                                </div>
-                                <button class="item-remove" onclick="this.closest('.block-container').remove()">X</button>
-                            </div>
-                            <div class="block-body">
-                                <ul class="nested-list"></ul>
-                            </div>
-                        `;
-
-                        targetList.appendChild(li);
-                        initSortable(li.querySelector('.nested-list'));
-
-                        // Recurse into the new container's nested list
-                        const nestedList = li.querySelector('.nested-list');
-                        i++; // consume start
-                        i = reconstructComplex(actions, i, nestedList, 'loop_end'); // consume until end
-                        // i is now after loop_end
-                        continue; // continue current loop
-
-                    } else if (action.type === 'loop_break') {
-                        createItem(`
-                            <strong style="color: #d32f2f;">停止迴圈 (Break Loop)</strong>
-                        `, 'loop_break', targetList);
-                        i++;
-                        continue;
-                    } else if (action.type === 'if_found') {
-                        const cond = action.condition || 'found';
-                        // Default true if undefined (legacy scripts)
-                        const clickT = (action.click_target !== undefined) ? action.click_target : true;
-                        createIfBlockInternalVisual(action.template, cond, targetList, clickT);
-                        const nestedList = targetList.lastElementChild.querySelector('.nested-list');
-                        i++;
-                        i = reconstructComplex(actions, i, nestedList, 'if_end');
-                        continue;
-                    }
-
-                    // Check if it's a terminator for a parent call (edge case if logic is malformed)
-                    if (action.type === 'loop_end' || action.type === 'if_end') {
-                        // unexpected terminator, just skip or return?
-                        // if match terminatorType, we handled it above.
-                        // if mismatch, it means structure is broken. specific break.
-                        return i + 1;
-                    }
-
-                    // Simple Items
-                    if (action.type === 'click') {
-                        createItem(`
-                        <strong>點擊</strong> 
-                        X: <input type="number" class="inp-x" value="${action.x}"> 
-                        Y: <input type="number" class="inp-y" value="${action.y}">
-                    `, 'click', targetList);
-                    } else if (action.type === 'swipe') {
-                        createItem(`
-                        <strong>滑動</strong> 
-                        X1: <input type="number" class="inp-x1" value="${action.x1}"> 
-                        Y1: <input type="number" class="inp-y1" value="${action.y1}">
-                        ->
-                        X2: <input type="number" class="inp-x2" value="${action.x2}"> 
-                        Y2: <input type="number" class="inp-y2" value="${action.y2}">
-                        時間(ms): <input type="number" class="inp-duration" value="${action.duration}">
-                    `, 'swipe', targetList);
-                    } else if (action.type === 'wait') {
-                        createItem(`
-                        <strong>等待</strong> 
-                        秒數: <input type="number" class="inp-seconds" value="${action.seconds}">
-                    `, 'wait', targetList);
-                    } else if (action.type === 'find_click') {
-                        // Create basic structure first
-                        createItem(`
-                        <div class="item-details">
-                            <strong>找圖點擊</strong> 
-                            檔名: <span class="select-container"></span>
-                        </div>
-                    `, 'find_click', targetList);
-
-                        // Manually inject select
-                        const li = targetList.lastElementChild;
-                        const select = document.createElement('select');
-                        select.className = 'inp-template-select long';
-
-                        const opt = document.createElement('option');
-                        opt.value = action.template;
-                        opt.text = action.template.replace('images/', '');
-                        opt.selected = true;
-                        select.add(opt);
-
-                        li.querySelector('.select-container').appendChild(select);
-
-                        // Update valid options if available
-                        if (availableImages.length > 0) updateSelectOptions(select, action.template);
-                    }
-
-                    i++;
+                    };
+                } else {
+                    return {
+                        content: "📄 " + item.name,
+                        callback: function () {
+                            // "images/sub/foo.png"
+                            // Backend path was constructed starting with "images/"
+                            // Ensure we pass the cleaner relative path if needed, but existing logic uses full relative path.
+                            callback(item.path);
+                        }
+                    };
                 }
-                return i;
-            }
+            });
+        }
 
-            // --- EXECUTION CONTROL ---
 
-            function runScript() {
-                const listRoot = document.getElementById('scriptList');
-                const actions = serializeScript(listRoot);
+        // --- HELPER ACTIONS ---
 
-                if (actions.length === 0) {
-                    alert("請先新增一些指令！");
-                    return;
+        function addNode(type) {
+            try {
+                var node = LiteGraph.createNode(type);
+                if (node) {
+                    // Safe basic position
+                    node.pos = [200, 300];
+
+                    // Try to adjust to view center ONLY if safe
+                    var container = document.getElementById("editor-container");
+                    if (container && graph && canvas && canvas.ds) {
+                        try {
+                            var scale = canvas.ds.scale || 1;
+                            var offX = canvas.ds.offset ? canvas.ds.offset[0] : 0;
+                            var offY = canvas.ds.offset ? canvas.ds.offset[1] : 0;
+
+                            var x = -offX + (container.clientWidth / 2) / scale;
+                            var y = -offY + (container.clientHeight / 2) / scale;
+
+                            if (!isNaN(x) && !isNaN(y)) {
+                                node.pos = [x - 100, y];
+                            }
+                        } catch (err) {
+                            console.warn("Pos calc error", err);
+                        }
+                    }
+                    graph.add(node);
+                } else {
+                    showToast("Error: Node type not found: " + type, 'error');
                 }
+            } catch (e) {
+                console.error(e);
+                showToast("Error adding node: " + e, 'error');
+            }
+        }
 
-                fetch('/run', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ actions: actions })
+        // --- CAPTURE & PICKER LOGIC ---
+
+        function captureScreen() {
+            fetch('/capture', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const img = document.getElementById('screenPreview');
+                        img.src = data.url;
+                        img.onload = () => { img.style.display = 'block'; document.getElementById('loadingText').style.display = 'none'; };
+                    } else {
+                        showToast("Capture failed: " + data.message, 'error');
+                    }
                 })
-                    .then(res => {
-                        if (!res.ok) {
-                            return res.json().then(err => { throw new Error(err.message || "Server Error"); });
-                        }
-                        return res.json();
-                    })
-                    .then(data => {
-                        // Success: Do not alert "Script started" to avoid annoyance, usually logs are enough.
-                        // Or simple toast. User wants logs.
-                        // alert(data.message); 
-                        console.log(data.message);
-                    })
-                    .catch(err => alert("Start failed: " + err));
+                .catch(err => showToast("Error: " + err, 'error'));
+        }
+
+        function getScaledCoords(event, img) {
+            const rect = img.getBoundingClientRect();
+            const scaleX = img.naturalWidth / rect.width;
+            const scaleY = img.naturalHeight / rect.height;
+            return {
+                x: Math.round(event.offsetX * scaleX),
+                y: Math.round(event.offsetY * scaleY)
+            };
+        }
+
+        function showCoords(event) {
+            if (isCoordsLocked) return;
+
+            const img = document.getElementById('screenPreview');
+            const display = document.getElementById('coordDisplay');
+            if (img.style.display === 'none') return;
+
+            const coords = getScaledCoords(event, img);
+            display.innerText = `X:${coords.x}, Y:${coords.y}`;
+            display.style.display = 'block';
+            display.style.border = 'none';
+        }
+
+        function pickCoords(event) {
+            const img = document.getElementById('screenPreview');
+            const coords = getScaledCoords(event, img);
+
+            // Check selected node
+            const selectedArgs = Object.values(canvas.selected_nodes || {});
+
+            // Mode 1: Update Node if selected
+            if (selectedArgs.length === 1) {
+                const node = selectedArgs[0];
+                updateNodeValues(node, coords.x, coords.y);
+                return;
             }
 
-            function stopScript() {
-                fetch('/stop', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => alert(data.message));
-            }
+            // Mode 2: Toggle Lock if no node selected
+            isCoordsLocked = !isCoordsLocked;
+            const display = document.getElementById('coordDisplay');
 
-            function shutdownServer() {
-                if (confirm("確定要關閉伺服器並結束網頁嗎？")) {
-                    fetch('/shutdown', { method: 'POST' })
-                        .then(res => {
-                            console.log("Server shutdown.");
-                            window.close();
-                        })
-                        .catch(err => {
-                            console.log("Server shutdown command sent.");
-                            window.close();
+            if (isCoordsLocked) {
+                display.innerText = `LOCKED: X:${coords.x}, Y:${coords.y}`;
+                display.style.border = '2px solid red';
+            } else {
+                display.style.border = 'none';
+                showCoords(event);
+            }
+        }
+
+        // Helper to update node props
+        function updateNodeValues(node, x, y) {
+            if (node.type === "bot/click") {
+                node.properties.x = x;
+                node.properties.y = y;
+                node.widgets[0].value = x;
+                node.widgets[1].value = y;
+                showToast(`Updated Click to (${x}, ${y})`);
+            } else if (node.type === "bot/swipe") {
+                // Still need confirm for swipe start/end decision
+                if (confirm("Set as Start point (OK) or End point (Cancel)?")) {
+                    node.properties.x1 = x;
+                    node.properties.y1 = y;
+                    node.widgets[0].value = x;
+                    node.widgets[1].value = y;
+                    showToast(`Updated Swipe Start to (${x}, ${y})`);
+                } else {
+                    node.properties.x2 = x;
+                    node.properties.y2 = y;
+                    node.widgets[2].value = x;
+                    node.widgets[3].value = y;
+                    showToast(`Updated Swipe End to (${x}, ${y})`);
+                }
+            } else {
+                showToast("Node not supported for coords: " + node.type, 'error');
+            }
+            node.setDirtyCanvas(true, true);
+        }
+
+        // --- SYSTEM ACTIONS ---
+        function testConnection() {
+            fetch('/test_connection', { method: 'POST' })
+                .then(res => res.json())
+                .then(d => showToast(d.message))
+                .catch(e => showToast("Error: " + e, 'error'));
+        }
+
+        function shutdownServer() {
+            if (confirm("Are you sure you want to stop the server? This will close the application.")) {
+                fetch('/shutdown', { method: 'POST' })
+                    .then(r => {
+                        showToast("Server shutdown. Closing...", 'error');
+                        setTimeout(() => window.close(), 1000);
+                    })
+                    .catch(e => showToast("Error: " + e, 'error'));
+            }
+        }
+
+
+        // --- KEYBOARD SHORTCUTS ---
+        // --- KEYBOARD SHORTCUTS ---
+        window.addEventListener("keydown", function (e) {
+            // Delete / Backspace to remove nodes
+            if (e.key === "Delete" || e.key === "Backspace") {
+                // Ignore if currently focused on an Input-like element
+                const target = e.target;
+                if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") {
+                    return;
+                }
+
+                // Check selection
+                // Ensure we have a canvas instance
+                if (canvas && canvas.selected_nodes && Object.keys(canvas.selected_nodes).length > 0) {
+                    const selected = Object.values(canvas.selected_nodes);
+                    if (selected.length > 0) {
+                        e.preventDefault(); // Stop Browser Back navigation or other defaults
+                        e.stopPropagation(); // Stop matching other listeners
+
+                        selected.forEach(node => {
+                            graph.remove(node);
                         });
+
+                        // Force redraw
+                        graph.setDirtyCanvas(true, true);
+                        showToast("Deleted " + selected.length + " nodes");
+                    }
                 }
             }
+        }, true); // Use Capture phase to ensure we get the event first
 
-            function testConnection() {
-                fetch('/test_connection', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => alert(data.message))
-                    .catch(err => alert("Error: " + err));
+        // --- SERIALIZATION & RUN ---
+
+        function serializeGraphToCommands() {
+            const nodes = graph._nodes;
+            const commands = [];
+
+            // Need a start node
+            const startNode = nodes.find(n => n.type === "bot/start");
+            if (!startNode) {
+                showToast("Error: Missing Start Node!", 'error');
+                return null;
             }
 
-            function captureScreen() {
-                fetch('/capture', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            const img = document.getElementById('screenPreview');
-                            img.src = data.url;
-                            img.style.display = 'block';
-                        } else {
-                            alert("Capture failed: " + data.message);
+            const getNode = (id) => nodes.find(n => n.id === id);
+
+            nodes.forEach(node => {
+                let cmd = {
+                    id: node.id,
+                    type: node.type.replace("bot/", ""),
+                    properties: node.properties
+                };
+
+                // Map connections
+                if (node.outputs) {
+                    node.outputs.forEach((output, index) => {
+                        if (output.links && output.links.length > 0) {
+                            const linkId = output.links[0];
+                            const link = graph.links[linkId];
+                            if (link) {
+                                const targetNode = getNode(link.target_id);
+                                if (targetNode) {
+                                    // Mapping logic based on node type
+                                    if (node.type === "bot/loop") {
+                                        if (output.name === "Body") cmd.next_body = targetNode.id;
+                                        if (output.name === "Exit") cmd.next_exit = targetNode.id;
+                                    }
+                                    else if (node.type === "bot/find_image") {
+                                        if (output.name === "Found") cmd.next_found = targetNode.id;
+                                        if (output.name === "Not Found") cmd.next_not_found = targetNode.id;
+                                    }
+                                    else {
+                                        // Default linear
+                                        cmd.next = targetNode.id;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Map Inputs (Data Flow) - NEW
+                cmd.input_links = {};
+                if (node.inputs) {
+                    node.inputs.forEach((input, idx) => {
+                        if (input.link) {
+                            var linkInfo = graph.links[input.link];
+                            if (linkInfo) {
+                                cmd.input_links[input.name] = {
+                                    id: linkInfo.origin_id,
+                                    slot: linkInfo.origin_slot
+                                };
+                            }
+                        }
+                    });
+                }
+
+                commands.push(cmd);
+            });
+            return commands;
+        }
+
+        function runGraph() {
+            const actions = serializeGraphToCommands();
+            if (!actions) return;
+            fetch('/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ actions: actions, mode: 'graph' })
+            }).then(r => r.json()).then(d => {
+                if (d.status === 'success') {
+                    showToast("Script started!");
+                }
+            });
+        }
+
+        function stopScript() {
+            fetch('/stop', { method: 'POST' }).then(() => showToast("Stop command sent."));
+        }
+
+        function clearGraph() {
+            if (confirm("Are you sure you want to clear the entire workspace?")) {
+                graph.clear();
+                initDefault();
+                showToast("Workspace cleared.");
+            }
+        }
+
+        // --- SCRIPT SAVE / LOAD / DELETE ---
+
+        function loadScriptsList() {
+            fetch('/api/scripts').then(r => r.json()).then(d => {
+                const sel = document.getElementById('savedScripts');
+                sel.innerHTML = '<option value="">載入腳本...</option>';
+                d.scripts.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.text = s;
+                    sel.add(opt);
+                });
+            });
+        }
+        loadScriptsList();
+
+        function loadGraph(name) {
+            if (!name) return;
+            document.getElementById('scriptName').value = name;
+            fetch('/api/scripts/' + name).then(r => r.json()).then(d => {
+                try {
+                    if (typeof d.content === 'string') {
+                        graph.configure(JSON.parse(d.content));
+                        showToast(`Loaded: ${name}`);
+                    } else {
+                        // legacy
+                        graph.clear();
+                        showToast("Legacy script format cleared.");
+                    }
+                } catch (e) {
+                    graph.clear();
+                }
+            });
+        }
+
+        function saveGraph() {
+            const name = document.getElementById('scriptName').value;
+            if (!name) return showToast("Please enter a name", 'error');
+            const data = JSON.stringify(graph.serialize());
+            fetch('/api/scripts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, content: data, type: 'graph' })
+            }).then(r => r.json()).then(d => {
+                showToast(d.message);
+                loadScriptsList(); // Refresh list
+            });
+        }
+
+        function deleteScript() {
+            const name = document.getElementById('scriptName').value;
+            // Also check dropdown if input is empty?
+            var target = name || document.getElementById('savedScripts').value;
+
+            if (!target) return showToast("Select script to delete", 'error');
+
+            if (confirm("Confirm delete script: " + target + "?")) {
+                fetch('/api/scripts/' + target, { method: 'DELETE' })
+                    .then(r => r.json())
+                    .then(d => {
+                        showToast(d.message);
+                        if (d.status === 'success') {
+                            document.getElementById('scriptName').value = '';
+                            graph.clear();
+                            initDefault();
+                            loadScriptsList();
                         }
                     })
-                    .catch(err => alert("Error: " + err));
+                    .catch(e => showToast("Error: " + e, 'error'));
             }
+        }
 
-        </script>
-    </body>
+        // Logs Polling
+        setInterval(() => {
+            fetch('/logs')
+                .then(res => res.json())
+                .then(data => {
+                    const el = document.getElementById('logConsole');
+                    if (data.logs) {
+                        el.innerHTML = data.logs.map(l =>
+                            (typeof l === 'object' ? `[${l.timestamp.split('T')[1].split('.')[0]}] ${l.message}` : l)
+                        ).join('<br>');
+                        el.scrollTop = el.scrollHeight;
+                    }
+                });
+        }, 1000);
+
+        // Init Default Graph
+        function initDefault() {
+            var node_start = LiteGraph.createNode("bot/start");
+            node_start.pos = [100, 250];
+            graph.add(node_start);
+        }
+        // Only init if empty and no legacy load
+        if (graph._nodes.length === 0) {
+            initDefault();
+        }
+        graph.start();
+
+    </script>
+</body>
 
 </html>

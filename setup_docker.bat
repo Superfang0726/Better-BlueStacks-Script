@@ -35,7 +35,7 @@ if %errorlevel% neq 0 (
     echo.
     echo [ERROR] Something went wrong while running the container.
     echo [錯誤] 執行容器時發生錯誤。
-    pause
+    timeout /t 3
 ) else (
     echo.
     echo [INFO] Container stopped.

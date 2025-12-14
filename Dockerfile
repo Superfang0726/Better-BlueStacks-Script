@@ -14,10 +14,14 @@ ENV PYTHONUNBUFFERED=1
 # 設定容器內的工作目錄
 WORKDIR /app
 
-# Install system dependencies including adb (required for some lower-level operations if needed)
-# 安裝系統依賴，包含 adb (如果需要底層操作可能會用到)
+# Install system dependencies including adb and OpenCV requirements
+# 安裝系統依賴，包含 adb 和 OpenCV 所需庫
 RUN apt-get update && apt-get install -y \
     android-tools-adb \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements file into the container
@@ -32,6 +36,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 複製其餘的應用程式代碼
 COPY . .
 
+# Expose the Flask port
+# 公開 Flask 連接埠
+EXPOSE 5000
+
 # Command to run the application
 # 執行應用程式的指令
-CMD ["python", "bluestacks_bot.py"]
+CMD ["python", "app.py"]

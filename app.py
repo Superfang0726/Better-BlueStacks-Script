@@ -70,211 +70,184 @@ def get_bot():
         bot = BlueStacksBot(device_host=device_host, device_port=device_port, logger=log_message)
     return bot
 
-def execute_actions(actions, recursion_depth=0):
+    return bot
+
+def execute_graph(nodes_list, recursion_depth=0):
     """
-    Recursive function to execute a list of actions.
-    Returns True if finished normally, False if stopped/error.
+    Execute a list of nodes representing a flow graph.
+    執行代表流程圖的節點列表。
+    
+    Args:
+        nodes_list (list): List of node dictionaries from LiteGraph.
+        recursion_depth (int): Current depth of recursion to prevent infinite loops.
     """
     global is_running
-    
-    # Prevent infinite recursion / stack overflow
     if recursion_depth > 10:
-        log_message("Error: Max recursion depth (10) reached. Stopping.")
+        log_message("Error: Max recursion depth (10) reached.")
         return False
-
-    i = 0
-    loop_stack = [] # Stores {index: int, count: int}
-    import os
-    import json
     
+    node_map = { node['id']: node for node in nodes_list }
+    loop_states = {} # {id: count}
+    loop_stack = [] # [id1, id2] - For nested loops / 用於巢狀迴圈
+    node_outputs = {} # { node_id: { slot_index: value } } - Data Flow / 資料流
+    
+    current_node = next((n for n in nodes_list if n.get('type') == 'start'), None)
+    if not current_node:
+        log_message("Error: No Start node.")
+        return False
+        
     try:
-        # We need a bot instance. It should be initialized by the entry point, 
-        # but get_bot() is safe to call multiple times (returns singleton).
         bot_instance = get_bot()
     except Exception as e:
         log_message(f"Failed to get bot: {e}")
         return False
+        
+    def get_input_value(node, input_name, default_val):
+        """
+        Retrieve input value from connected nodes (Data Flow).
+        從連接的節點獲取輸入值 (資料流)。
+        """
+        links = node.get('input_links', {})
+        if input_name in links:
+            link = links[input_name]
+            src_id = link['id']
+            slot = link['slot']
+            if src_id in node_outputs and slot in node_outputs[src_id]:
+                return node_outputs[src_id][slot]
+        return default_val
 
-    while i < len(actions) and is_running:
-        if not is_running:
+    while current_node and is_running:
+        node_id = current_node['id']
+        node_type = current_node.get('type')
+        props = current_node.get('properties', {})
+        next_id = None
+        
+        try:
+            if node_type == 'start':
+                # Start node just moves to next
+                # 開始節點僅移動到下一個
+                next_id = current_node.get('next')
+                
+            elif node_type == 'click':
+                # Click with optional Data Flow overriding properties
+                # 點擊，可選的資料流覆蓋屬性
+                x = int(get_input_value(current_node, 'X', props.get('x', 500)))
+                y = int(get_input_value(current_node, 'Y', props.get('y', 500)))
+                bot_instance.click(x, y)
+                next_id = current_node.get('next')
+                
+            elif node_type == 'swipe':
+                x1 = int(get_input_value(current_node, 'X1', props.get('x1', 500)))
+                y1 = int(get_input_value(current_node, 'Y1', props.get('y1', 800)))
+                x2 = int(get_input_value(current_node, 'X2', props.get('x2', 500)))
+                y2 = int(get_input_value(current_node, 'Y2', props.get('y2', 200)))
+                dur = int(props.get('duration', 500))
+                bot_instance.swipe(x1, y1, x2, y2, dur)
+                next_id = current_node.get('next')
+                
+            elif node_type == 'wait':
+                sec = float(props.get('seconds', 1.0))
+                log_message(f"Waiting {sec}s...")
+                time.sleep(sec)
+                next_id = current_node.get('next')
+                
+            elif node_type == 'find_image':
+                template = props.get('template', '')
+                algorithm = props.get('algorithm', 'auto')
+                
+                if template:
+                    log_message(f"Checking: {template} (Algo: {algorithm})")
+                    # Use bot's smart finder with selected algorithm
+                    # 使用機器人的智慧搜尋 (帶演算法選擇)
+                    center = bot_instance.find_and_click(template, click_target=False, method=algorithm)
+                        
+                    if center:
+                        log_message(f"Found {template} at {center}")
+                        # Store outputs for Data Flow (X, Y)
+                        # 儲存資料流輸出 (X, Y)
+                        if node_id not in node_outputs: node_outputs[node_id] = {}
+                        node_outputs[node_id][2] = center[0] # Slot 2: X
+                        node_outputs[node_id][3] = center[1] # Slot 3: Y
+                        
+                        next_id = current_node.get('next_found')
+                    else:
+                        log_message(f"Not found: {template}")
+                        next_id = current_node.get('next_not_found')
+                else:
+                    next_id = current_node.get('next_not_found')
+                    
+            elif node_type == 'loop':
+                if node_id not in loop_states:
+                    loop_states[node_id] = int(props.get('count', 3))
+                    loop_stack.append(node_id)
+                    log_message(f"Loop Start (Count: {loop_states[node_id]})")
+                count = loop_states[node_id]
+                if count == 0:
+                     # Infinite Loop / 無限迴圈
+                     next_id = current_node.get('next_body')
+                elif count > 0:
+                     loop_states[node_id] -= 1
+                     log_message(f"Looping... ({loop_states[node_id]} left)")
+                     next_id = current_node.get('next_body')
+                else:
+                     log_message("Loop Finished.")
+                     if loop_stack and loop_stack[-1] == node_id: loop_stack.pop()
+                     loop_states.pop(node_id, None)
+                     next_id = current_node.get('next_exit')
+                     
+            elif node_type == 'loop_break':
+                log_message("Loop Break...")
+                if loop_stack:
+                    target = loop_stack.pop() # Pop current loop from stack
+                    loop_states.pop(target, None) # Clear state
+                    t_node = node_map.get(target)
+                    next_id = t_node.get('next_exit') if t_node else None
+                    log_message("Jumped to Loop Exit.")
+                else:
+                    log_message("Break outside loop ignored.")
+                    next_id = current_node.get('next')
+                    
+            elif node_type == 'script':
+                 # Nested script execution (Placeholder for now)
+                 # 巢狀腳本執行 (目前暫位)
+                 log_message(f"Script call '{props.get('scriptName')}' - not executed.")
+                 next_id = current_node.get('next')
+            else:
+                 next_id = current_node.get('next')
+                 
+        except Exception as e:
+            log_message(f"Exec Error ({node_type}): {e}")
             return False
             
-        action = actions[i]
-        act_type = action.get('type')
-        
-        if act_type == 'click':
-            bot_instance.click(int(action['x']), int(action['y']))
-            
-        elif act_type == 'swipe':
-            bot_instance.swipe(
-                int(action['x1']), int(action['y1']), 
-                int(action['x2']), int(action['y2']), 
-                int(action.get('duration', 500))
-            )
-            
-        elif act_type == 'wait':
-            log_message(f"Waiting for {action['seconds']} seconds...")
-            time.sleep(float(action['seconds']))
-            
-        elif act_type == 'find_click':
-            img_path = action['template']
-            bot_instance.find_and_click(img_path)
-
-        elif act_type == 'loop_start':
-            # Count 0 means infinite, treated as -1 in stack
-            raw_count = int(action['count'])
-            count = -1 if raw_count == 0 else raw_count
-            
-            # If stack top is current index, it means we looped back.
-            # Don't re-push.
-            is_reentry = False
-            if loop_stack and loop_stack[-1]['index'] == i:
-                is_reentry = True
-                
-            if not is_reentry:
-                # If count is > 0 OR -1 (infinite), enter loop
-                if count != 0: 
-                    loop_stack.append({'index': i, 'count': count})
-                    msg = "Infinite" if count == -1 else count
-                    log_message(f"Entering loop (count: {msg})")
-                else:
-                    pass
-
-        elif act_type == 'loop_end':
-            if loop_stack:
-                current_loop = loop_stack[-1]
-                
-                should_loop = False
-                if current_loop['count'] == -1:
-                    should_loop = True
-                else:
-                    current_loop['count'] -= 1
-                    if current_loop['count'] > 0:
-                        should_loop = True
-                
-                if should_loop:
-                    i = current_loop['index']
-                    msg = "Infinite" if current_loop['count'] == -1 else current_loop['count']
-                    log_message(f"Looping back... ({msg} left)")
-                else:
-                    loop_stack.pop()
-                    log_message("Loop finished.")
-            else:
-                log_message("Warning: loop_end without loop_start")
-
-        elif act_type == 'loop_break':
-            if loop_stack:
-                log_message("Breaking out of loop...")
-                loop_stack.pop()
-                depth = 1 
-                k = i + 1
-                found_end = False
-                while k < len(actions):
-                    at = actions[k].get('type')
-                    if at == 'loop_start':
-                        depth += 1
-                    elif at == 'loop_end':
-                        depth -= 1
-                        if depth == 0:
-                            i = k 
-                            found_end = True
-                            break
-                    k += 1
-                if not found_end:
-                        log_message("Error: Could not find loop_end for break")
-                        break
-            else:
-                log_message("Warning: loop_break called outside of loop")
-
-        elif act_type == 'if_found':
-            img_path = action['template']
-            condition = action.get('condition', 'found') # 'found' or 'not_found'
-            click_target = action.get('click_target', True) # Default True
-            
-            log_key = "If Found" if condition == 'found' else "If Not Found"
-            log_message(f"Checking {log_key}: {img_path} (Click: {click_target})")
-            
-            found = bot_instance.find_and_click(img_path, click_target=click_target)
-            
-            # Logic:
-            # 1. condition='found', found=True -> Enter (skip=False)
-            # 2. condition='found', found=False -> Skip (skip=True)
-            # 3. condition='not_found', found=True -> Skip (skip=True)
-            # 4. condition='not_found', found=False -> Enter (skip=False)
-            
-            should_enter = False
-            if condition == 'found':
-                should_enter = found
-            else:
-                should_enter = not found
-            
-            if not should_enter:
-                # log_message("Condition False. Skipping...") # Reduce spam
-                depth = 1
-                j = i + 1
-                found_end = False
-                while j < len(actions):
-                    if actions[j]['type'] == 'if_found':
-                        depth += 1
-                    elif actions[j]['type'] == 'if_end':
-                        depth -= 1
-                        if depth == 0:
-                            i = j
-                            found_end = True
-                            break
-                    j += 1
-                if not found_end:
-                    log_message("Error: Missing if_end")
-                    break
-            else:
-                log_message(f"Condition Met ({log_key}). Entering block.")
-
-        elif act_type == 'if_end':
-            pass
-
-        elif act_type == 'run_script':
-            script_name = action.get('script_name')
-            log_message(f"Calling sub-script: {script_name}")
-            
-            filepath = os.path.join(SCRIPTS_DIR, f"{script_name}.json")
-            if os.path.exists(filepath):
-                 try:
-                    with open(filepath, 'r', encoding='utf-8') as f:
-                        sub_actions = json.load(f)
-                    
-                    # Clean recursion
-                    result = execute_actions(sub_actions, recursion_depth + 1)
-                    if not result:
-                        # If sub-script failed or stopped, we stop too
-                        return False
-                    log_message(f"Sub-script {script_name} finished.")
-                 except Exception as e:
-                     log_message(f"Error executing sub-script {script_name}: {e}")
-            else:
-                log_message(f"Error: Script {script_name} not found.")
-
-        time.sleep(0.5) # Small delay between steps
-        i += 1
-        
+        current_node = node_map.get(next_id)
+        time.sleep(0.05)
     return True
 
-def run_script(actions):
+def run_script(actions, mode='graph'):
+    """
+    Main entry point for running a script.
+    執行腳本的主要入口點。
+    """
     global is_running
     is_running = True
     
-    log_message("Starting script execution...")
+    log_message(f"Starting execution...")
     
     try:
         # Check connection once before starting
         get_bot()
         
-        execute_actions(actions)
+        # We only support graph execution now
+        execute_graph(actions)
             
     except Exception as e:
         log_message(f"Script execution error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         is_running = False
-        log_message("Script stopped.") # Changed to 'Stopped' as requested
+        log_message("Script stopped.")
+
 
 @app.route('/')
 def index():
@@ -290,9 +263,10 @@ def run():
         
     data = request.json
     actions = data.get('actions', [])
+    mode = data.get('mode', 'legacy')
     
     # Run in a separate thread so we don't block the server
-    current_thread = threading.Thread(target=run_script, args=(actions,))
+    current_thread = threading.Thread(target=run_script, args=(actions, mode))
     current_thread.start()
     
     return jsonify({"status": "success", "message": "Script started"})
@@ -418,6 +392,44 @@ def save_script():
         return jsonify({"status": "success", "message": f"Script '{name}' saved."})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Helper for recursive image listing
+def get_image_tree(path_to_scan, relative_path=""):
+    items = []
+    if not os.path.exists(path_to_scan):
+        return items
+        
+    for entry in sorted(os.listdir(path_to_scan)):
+        full_path = os.path.join(path_to_scan, entry)
+        rel_path = os.path.join(relative_path, entry).replace("\\", "/") # Web paths
+        
+        if os.path.isdir(full_path):
+            children = get_image_tree(full_path, rel_path)
+            if children: # Only add if has content
+                items.append({
+                    "name": entry,
+                    "type": "folder",
+                    "children": children
+                })
+        elif entry.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+            items.append({
+                "name": entry,
+                "type": "file",
+                "path": "images/" + rel_path # Full path for bot usage, relative to project root?
+                # Actually, verify how bot uses it. Bot expects path relative to CWD or absolute.
+                # Project root is CWD. So "images/sub/foo.png" is good.
+                # BUT, find_and_click usually expects "images/..."
+            })
+    return items
+
+@app.route('/api/images', methods=['GET'])
+def api_list_images():
+    img_dir = os.path.join(os.getcwd(), 'images')
+    if not os.path.exists(img_dir):
+        os.makedirs(img_dir)
+    
+    tree = get_image_tree(img_dir)
+    return jsonify({"images": tree})
 
 @app.route('/api/scripts/<name>', methods=['GET'])
 def load_script(name):
