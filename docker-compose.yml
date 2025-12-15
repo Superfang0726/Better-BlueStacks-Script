@@ -30,7 +30,7 @@ services:
 
     # Run the Flask app instead of the script directly
     # 執行 Flask 應用程式而非直接執行腳本
-    command: python app.py
+    command: python run.py
 
     # Extra hosts configuration to allow container to see host machine
     # 額外的主機配置，允許容器看見宿主機

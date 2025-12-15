@@ -42,4 +42,4 @@ EXPOSE 5000
 
 # Command to run the application
 # 執行應用程式的指令
-CMD ["python", "app.py"]
+CMD ["python", "run.py"]

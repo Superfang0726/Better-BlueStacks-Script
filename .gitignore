@@ -45,3 +45,10 @@ scripts/
 # IDE
 .vscode/
 .idea/
+
+# Debug
+debug.png
+
+# Config & Logs
+settings.json
+server.log
