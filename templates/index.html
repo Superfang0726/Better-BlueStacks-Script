@@ -540,6 +540,8 @@
                     onclick="addNode('bot/discord_slash')">⚡ Slash 指令 (Slash Event)</button>
                 <button class="node-btn" style="border-left: 3px solid #e67e22;"
                     onclick="addNode('bot/discord_wait')">🛑 等待指令 (Wait /Cmd)</button>
+                <button class="node-btn" style="border-left: 3px solid #7289da;"
+                    onclick="addNode('bot/discord_screenshot')">📸 截圖 (Screenshot)</button>
             </div>
 
             <!-- Canvas (Center) -->
@@ -765,17 +767,45 @@
             this.addOutput("Exec", "ACTION");
             this.properties = { scriptName: "" };
             var that = this;
-            this.addWidget("text", "Script", "", function (v) { that.properties.scriptName = v; });
+
+            // Combo Widget
+            this.addWidget("combo", "Script", "", function (v) {
+                that.properties.scriptName = v;
+            }, {
+                values: function () {
+                    return ["Select"].concat(window.availableScripts);
+                }
+            });
+
             this.title = "Call Script";
             this.bgcolor = "#E91E63";
+            this.size = [200, 60];
         }
         NodeScript.title = "Call Script";
         NodeScript.prototype.onConfigure = function () {
             if (this.widgets && this.widgets[0]) {
                 this.widgets[0].value = this.properties.scriptName;
             }
+            // Trigger refresh on configure
+            updateAvailableScriptsCache();
         };
         LiteGraph.registerNodeType("bot/script", NodeScript);
+
+        // Global Scripts Cache
+        window.availableScripts = [];
+
+        function updateAvailableScriptsCache() {
+            fetch('/api/scripts')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.scripts) {
+                        window.availableScripts = data.scripts;
+                    }
+                })
+                .catch(e => console.error("Failed to fetch scripts", e));
+        }
+        // Fetch initially
+        updateAvailableScriptsCache();
 
         // 6.5 Loop Break (NEW)
         function NodeLoopBreak() {
@@ -958,6 +988,22 @@
             this.size = [240, 80]; // Force resize
         };
         LiteGraph.registerNodeType("bot/discord_wait", NodeDiscordWait);
+
+        // 11. Discord Screenshot (NEW)
+        function NodeDiscordScreenshot() {
+            this.addInput("Exec", "ACTION");
+            this.addOutput("Exec", "ACTION");
+            this.properties = { message: "" };
+            var that = this;
+            this.addWidget("text", "Caption", "", function (v) { that.properties.message = v; });
+            this.title = "Send Screenshot";
+            this.bgcolor = "#7289da";
+        }
+        NodeDiscordScreenshot.title = "Send Screenshot";
+        NodeDiscordScreenshot.prototype.onConfigure = function () {
+            if (this.widgets && this.widgets[0]) this.widgets[0].value = this.properties.message;
+        };
+        LiteGraph.registerNodeType("bot/discord_screenshot", NodeDiscordScreenshot);
 
         // --- IMAGE MENU LOGIC ---
         var imageTreeCache = null;

@@ -15,7 +15,12 @@ def run_discord_bot_thread(token):
     log_message("Starting Persistent Discord Bot...")
     
     intents = discord.Intents.default()
-    client = discord.Client(intents=intents)
+    # Set status and activity immediately upon client creation
+    client = discord.Client(
+        intents=intents,
+        status=discord.Status.online,
+        activity=discord.Game(name="BrownFarm Script")
+    )
     tree = app_commands.CommandTree(client)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -28,7 +33,7 @@ def run_discord_bot_thread(token):
     async def on_ready():
         log_message(f"Discord Bot Logged in as {client.user} (Persistent)")
         await client.wait_until_ready() # Ensure internal cache is ready
-        await client.change_presence(status=discord.Status.online, activity=discord.Game(name="BrownFarm Script"))
+        # Status is now set in __init__
         await tree.sync()
         
         # Load commands from settings
@@ -161,7 +166,12 @@ def run_script(actions, mode='graph'):
         # Map command_name -> Logic
         for node in slash_nodes:
             cmd_name = node['properties'].get('command_name', '').strip()
-            if not cmd_name: continue
+            if not cmd_name: 
+                log_message(f"Warning: Slash Node {node['id']} has no command name. Skipping.")
+                continue
+            
+            if cmd_name in shared.command_hooks:
+                log_message(f"Warning: Command '/{cmd_name}' (Node {node['id']}) overwrites previous handler!")
             
             node_id = node['id']
             # Logic: Start subgraph
@@ -170,20 +180,30 @@ def run_script(actions, mode='graph'):
             
             shared.command_hooks[cmd_name] = runner
 
+
+
         for node in wait_nodes:
-            cmd_name = node['properties'].get('command_name', '').strip()
-            if not cmd_name: continue
+            cmd_name = node['properties'].get('command_name', 'continue').strip()
+            if not cmd_name: cmd_name = 'continue'
             
+            if cmd_name in shared.command_hooks:
+                log_message(f"Warning: Command '/{cmd_name}' (WaitNode {node['id']}) overwrites previous handler! Check for duplicates.")
+
             node_id = node['id']
             # Logic: Signal Wait Event
-            def signaler():
-                event = shared.wait_events.get(node_id)
+            # Fix closure capture by using default argument
+            def signaler(nid=node_id, nm=cmd_name):
+                event = shared.wait_events.get(nid)
                 if event:
+                    log_message(f"Signaling event for node {nid}")
                     event.set()
                     return True
+                else:
+                    log_message(f"Command '/{nm}' received, but WaitNode {nid} is not waiting (Event not found).")
                 return False
             
             shared.command_hooks[cmd_name] = signaler
+            log_message(f"Registered Wait Command: /{cmd_name} -> Node {node_id}")
 
         # 2. Start Execution
         if start_node:
