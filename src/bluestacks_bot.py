@@ -103,6 +103,18 @@ class BlueStacksBot:
         else:
             self.logger("Device not connected.")
 
+    def clear_recent_apps(self):
+        """
+        Open the recent apps / app switcher screen.
+        打開「最近使用的應用程式」(多工畫面)。
+        """
+        if self.device:
+            # Open recent apps screen (App Switcher / Overview)
+            self.device.shell("input keyevent 187")  # KEYCODE_APP_SWITCH
+            self.logger("Opened Recent Apps screen")
+        else:
+            self.logger("Device not connected.")
+
     def screencap(self, filename="screenshot.png"):
         """
         Capture the screen and save to a file.

@@ -527,6 +527,8 @@
                 <h3>基本動作</h3>
                 <button class="node-btn btn-click" onclick="addNode('bot/click')">🖱️ 點擊 (Click)</button>
                 <button class="node-btn btn-swipe" onclick="addNode('bot/swipe')">👆 滑動 (Swipe)</button>
+                <button class="node-btn btn-break" onclick="addNode('bot/clear_apps')">📱 最近應用 (Recent Apps)</button>
+                <button class="node-btn btn-start" onclick="addNode('bot/home')">🏠 回到首頁 (Home)</button>
 
                 <h3>視覺辨識</h3>
                 <button class="node-btn btn-find" onclick="addNode('bot/find_image')">🖼️ 找圖 (Find Image)</button>
@@ -641,13 +643,14 @@
 
         // 2. Click
         function NodeClick() {
+            var that = this;  // Capture 'this' reference
             this.addInput("Exec", "ACTION");
             this.addOutput("Exec", "ACTION");
             this.addInput("X", "number");
             this.addInput("Y", "number");
             this.properties = { x: 500, y: 500 };
-            this.addWidget("number", "X", 500, function (v) { this.properties.x = v; }, { min: 0, max: 9999, precision: 0 });
-            this.addWidget("number", "Y", 500, function (v) { this.properties.y = v; }, { min: 0, max: 9999, precision: 0 });
+            this.addWidget("number", "X", 500, function (v) { that.properties.x = v; }, { min: 0, max: 9999, precision: 0 });
+            this.addWidget("number", "Y", 500, function (v) { that.properties.y = v; }, { min: 0, max: 9999, precision: 0 });
             this.title = "Click";
         }
         NodeClick.title = "Click";
@@ -677,6 +680,7 @@
 
         // 3. Swipe
         function NodeSwipe() {
+            var that = this;  // Capture 'this' reference
             this.addInput("Exec", "ACTION");
             this.addInput("X1", "number");
             this.addInput("Y1", "number");
@@ -684,11 +688,11 @@
             this.addInput("Y2", "number");
             this.addOutput("Exec", "ACTION");
             this.properties = { x1: 500, y1: 800, x2: 500, y2: 200, duration: 500 };
-            this.addWidget("number", "X1", 500, function (v) { this.properties.x1 = v; });
-            this.addWidget("number", "Y1", 800, function (v) { this.properties.y1 = v; });
-            this.addWidget("number", "X2", 500, function (v) { this.properties.x2 = v; });
-            this.addWidget("number", "Y2", 200, function (v) { this.properties.y2 = v; });
-            this.addWidget("number", "Time(ms)", 500, function (v) { this.properties.duration = v; });
+            this.addWidget("number", "X1", 500, function (v) { that.properties.x1 = v; });
+            this.addWidget("number", "Y1", 800, function (v) { that.properties.y1 = v; });
+            this.addWidget("number", "X2", 500, function (v) { that.properties.x2 = v; });
+            this.addWidget("number", "Y2", 200, function (v) { that.properties.y2 = v; });
+            this.addWidget("number", "Time(ms)", 500, function (v) { that.properties.duration = v; });
             this.title = "Swipe";
             this.bgcolor = "#2196F3";
         }
@@ -723,10 +727,13 @@
 
         // 4. Wait
         function NodeWait() {
+            var that = this;  // Capture 'this' reference
             this.addInput("Exec", "ACTION");
             this.addOutput("Exec", "ACTION");
             this.properties = { seconds: 1.0 };
-            this.addWidget("number", "Seconds", 1.0, function (v) { this.properties.seconds = v; }, { step: 0.1, min: 0 });
+            this.addWidget("number", "Seconds", 1.0, function (v) {
+                that.properties.seconds = v;
+            }, { step: 0.1, min: 0 });
             this.title = "Wait";
         }
         NodeWait.title = "Wait";
@@ -736,6 +743,26 @@
             }
         };
         LiteGraph.registerNodeType("bot/wait", NodeWait);
+
+        // 4.5 Recent Apps (App Switcher)
+        function NodeClearApps() {
+            this.addInput("Exec", "ACTION");
+            this.addOutput("Exec", "ACTION");
+            this.title = "Recent Apps";
+            this.bgcolor = "#FF9800";  // Orange
+        }
+        NodeClearApps.title = "Recent Apps";
+        LiteGraph.registerNodeType("bot/clear_apps", NodeClearApps);
+
+        // 4.6 Home
+        function NodeHome() {
+            this.addInput("Exec", "ACTION");
+            this.addOutput("Exec", "ACTION");
+            this.title = "Home";
+            this.bgcolor = "#4CAF50";  // Green
+        }
+        NodeHome.title = "Home";
+        LiteGraph.registerNodeType("bot/home", NodeHome);
 
         // 5. Loop (Updated)
         function NodeLoop() {

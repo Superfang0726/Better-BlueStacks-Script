@@ -131,7 +131,7 @@ class DiscordWaitNode(NodeHandler):
         shared.wait_events[node_id] = event
         
         wait_success = False
-        while context.is_running:
+        while shared.is_running:
             if event.wait(timeout=1.0):
                 wait_success = True
                 break

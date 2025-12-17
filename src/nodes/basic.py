@@ -49,3 +49,21 @@ class WaitNode(NodeHandler):
         log_message(f"Waiting {sec}s...")
         time.sleep(sec)
         return node.get('next')
+
+class ClearAppsNode(NodeHandler):
+    @property
+    def node_type(self): return "clear_apps"
+    
+    def execute(self, node: Dict[str, Any], context: RuntimeContext) -> Optional[str]:
+        log_message("Opening Recent Apps screen...")
+        context.bot.clear_recent_apps()
+        return node.get('next')
+
+class HomeNode(NodeHandler):
+    @property
+    def node_type(self): return "home"
+    
+    def execute(self, node: Dict[str, Any], context: RuntimeContext) -> Optional[str]:
+        log_message("Pressing Home button...")
+        context.bot.home()
+        return node.get('next')

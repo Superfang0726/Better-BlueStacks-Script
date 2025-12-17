@@ -72,6 +72,16 @@ def configure_routes(app):
         if shared.is_running:
             shared.is_running = False
             log_message("Stopping script...")
+            
+            # Signal all wait events to unblock threads
+            for evt in shared.wait_events.values():
+                evt.set()
+            shared.wait_events.clear()
+            
+            # Clear command hooks
+            shared.command_hooks.clear()
+            
+            log_message("Stop signal sent. All events cleared.")
         else:
             log_message("Stop requested, but script was not running.")
             

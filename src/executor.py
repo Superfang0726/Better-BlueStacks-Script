@@ -3,9 +3,10 @@ from typing import List, Dict, Any, Type, Optional
 from context import RuntimeContext
 from nodes.base import NodeHandler
 from shared import log_message
+import shared  # For checking is_running globally
 
 # Import all nodes to register them
-from nodes.basic import StartNode, ClickNode, SwipeNode, WaitNode
+from nodes.basic import StartNode, ClickNode, SwipeNode, WaitNode, ClearAppsNode, HomeNode
 from nodes.vision import FindImageNode
 from nodes.logic import LoopNode, LoopBreakNode, ScriptNode
 from nodes.discord_nodes import DiscordSendNode, DiscordWaitNode, DiscordScreenshotNode
@@ -42,6 +43,8 @@ class NodeRegistry:
         cls.register(DiscordSendNode)
         cls.register(DiscordWaitNode)
         cls.register(DiscordScreenshotNode)
+        cls.register(ClearAppsNode)
+        cls.register(HomeNode)
 
 class GraphExecutor:
     def __init__(self):
@@ -56,7 +59,8 @@ class GraphExecutor:
             log_message("Error: Max recursion depth (10) reached.")
             return False
 
-        if not context.is_running:
+        # Check GLOBAL is_running for immediate stop
+        if not shared.is_running:
             return False
 
         # Scope Management: Temporarily override node_map for this recursion level
@@ -82,7 +86,8 @@ class GraphExecutor:
                     log_message("Warning: No Start node found in current flow.")
                     return False
 
-            while current_node and context.is_running:
+            # Use shared.is_running for loop check to respect stop command
+            while current_node and shared.is_running:
                 node_id = current_node['id']
                 node_type = current_node.get('type', '')
                 
