@@ -68,6 +68,9 @@ class GraphExecutor:
         local_map = { node['id']: node for node in nodes_list }
         context.node_map = local_map
         
+        # Track which loops were started in THIS scope (for proper Auto-Return logic)
+        local_loops_at_start = len(context.loop_stack)
+        
         # Inject self into context so ScriptNode can recurse
         context.executor = self
 
@@ -107,42 +110,15 @@ class GraphExecutor:
                 # If next_id is None, natural end of branch.
                 if next_id is None:
                     # Check loop stack for Auto-Return
-                    # Loops in THIS scope or outer scope?
-                    # Engine.py Logic: "If end of branch and inside a loop, go back to loop start"
-                    # But which loop? The one at top of stack.
-                    if context.loop_stack:
+                    # ONLY consider loops that were started IN THIS SCOPE (not inherited from parent)
+                    # This prevents sub-scripts from accidentally triggering parent loop auto-return
+                    if len(context.loop_stack) > local_loops_at_start:
                         loop_id = context.loop_stack[-1]
-                        # We must check if this loop_id belongs to CURRENT map (local loop) or outer?
-                        # If we are in sub-script, and loop_stack has ID from Main.
-                        # `local_map` won't have it.
-                        # If we auto-return to a Main loop node, we set `current_node` to something NOT in `local_map`.
-                        # Then next iteration `local_map.get(next_id)` returns None.
-                        # Then loop terminates?
-                        
-                        # Ideally, sub-script runs until it has no next node.
-                        # Then it returns to Main.
-                        # Main continues.
-                        
-                        # Issue: If we are inside a loop in Sub-script using `loop` node.
-                        # LoopStack has [SubLoopID].
-                        # `end of branch` -> next_id = SubLoopID.
-                        # It works.
-                        
-                        # What if we are in Main loop, call Sub, Sub finishes.
-                        # Sub returns None.
-                        # GraphExecutor returns True.
-                        # Main NodeHandler (ScriptNode) gets control back.
-                        # It returns `next` of ScriptNode.
-                        # So we don't need to handle outer loop return HERE.
-                        # We only handle return to loops defined in THIS graph.
-                        
+                        # Also verify the loop exists in our local map
                         if loop_id in local_map:
                              log_message(f"Auto-Loop Return to {loop_id}")
                              next_id = loop_id
-                        else:
-                             # Reached end of sub-script, but stack implies we are in a loop from caller?
-                             # Or we just finished this graph.
-                             pass
+                        # else: Loop ID not in local map, likely from parent scope - don't auto-return
                 
                 if next_id:
                     current_node = local_map.get(next_id)
