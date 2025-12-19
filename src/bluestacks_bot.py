@@ -125,7 +125,6 @@ class BlueStacksBot:
                 # Get the screenshot binary data
                 # 獲取截圖的二進制數據
                 result = self.device.screencap()
-                result = self.device.screencap()
                 with open(filename, "wb") as f:
                     f.write(result)
                 self.logger(f"Screenshot saved to {filename}")
@@ -134,6 +133,33 @@ class BlueStacksBot:
                 self.logger(f"Failed to take screenshot: {e}")
         else:
             self.logger("Device not connected.")
+
+    def get_pixel_color(self, x, y):
+        """
+        Get the color of a specific pixel at (x, y).
+        獲取特定座標 (x, y) 的像素顏色。
+        Returns: (B, G, R) tuple or None
+        """
+        if not self.device:
+            return None
+            
+        try:
+            result = self.device.screencap()
+            img_array = np.frombuffer(result, np.uint8)
+            img_color = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+            
+            if img_color is not None:
+                # height, width, channels
+                h, w, _ = img_color.shape
+                if 0 <= x < w and 0 <= y < h:
+                    bgr = img_color[y, x]
+                    return tuple(map(int, bgr))
+                else:
+                    self.logger(f"Coordinates ({x}, {y}) out of bounds ({w}x{h})")
+        except Exception as e:
+            self.logger(f"Failed to get pixel color: {e}")
+            
+        return None
 
     def find_with_sift(self, template_path, timeout=3, min_match_count=10):
         """

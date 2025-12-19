@@ -95,14 +95,22 @@ class ScriptService:
             # Ideally this schema should be defined in NodeHandler, 
             # but decoupling parsing from execution is good.
             if node_type == 'loop':
-                new_node['next_body'] = conns.get(0)
-                new_node['next_exit'] = conns.get(1)
-            elif node_type == 'find_image':
-                new_node['next_found'] = conns.get(0)
-                new_node['next_not_found'] = conns.get(1)
+                new_node['next_body'] = conns.get(str(0)) or conns.get(0)
+                new_node['next_exit'] = conns.get(str(1)) or conns.get(1)
+            elif node_type in ['find_image', 'check_pixel']:
+                # Support both int and string keys for robustness
+                # Try slot 0 (Found) and slot 1 (Not Found)
+                new_node['next_found'] = conns.get(0) or conns.get(str(0))
+                new_node['next_not_found'] = conns.get(1) or conns.get(str(1))
+                # If these are missing, fallback to whatever is in slot 0/1 anyway
+                if new_node['next_found'] is None: new_node['next_found'] = conns.get(0)
+                if new_node['next_not_found'] is None: new_node['next_not_found'] = conns.get(1)
+                
+                # Default/Fallthrough to index 0 if only one connection exists anywhere? 
+                # No, LiteGraph users expect explicit branching.
             else:
                 # Default linear
-                new_node['next'] = conns.get(0)
+                new_node['next'] = conns.get(0) or conns.get(str(0))
                 
             # Inputs (Data Flow)
             if 'inputs' in node:

@@ -28,3 +28,41 @@ class FindImageNode(NodeHandler):
                 return node.get('next_not_found')
         else:
             return node.get('next_not_found')
+
+class CheckPixelNode(NodeHandler):
+    @property
+    def node_type(self): return "check_pixel"
+    
+    def execute(self, node: Dict[str, Any], context: RuntimeContext) -> Optional[str]:
+        props = node.get('properties', {})
+        x = int(props.get('x', 0))
+        y = int(props.get('y', 0))
+        expected_hex = props.get('expected_color', '#FFFFFF').lstrip('#')
+        tolerance = int(props.get('tolerance', 10))
+        
+        # Convert hex to RGB
+        try:
+            expected_rgb = tuple(int(expected_hex[i:i+2], 16) for i in (0, 2, 4))
+        except:
+            log_message(f"Invalid Hex color: {expected_hex}")
+            return node.get('next_not_found')
+
+        log_message(f"Checking pixel at ({x}, {y}) for color #{expected_hex}")
+        actual_bgr = context.bot.get_pixel_color(x, y)
+        
+        if actual_bgr:
+            # actual_bgr is (B, G, R)
+            actual_rgb = (actual_bgr[2], actual_bgr[1], actual_bgr[0])
+            log_message(f"Actual color: RGB{actual_rgb}")
+            
+            # Compare with tolerance
+            diff = sum(abs(a - b) for a, b in zip(actual_rgb, expected_rgb))
+            if diff <= tolerance * 3: # Simple Manhattan distance check
+                log_message("Color matches!")
+                return node.get('next_found')
+            else:
+                log_message(f"Color mismatch (Diff: {diff})")
+                return node.get('next_not_found')
+        else:
+            log_message("Failed to get pixel color.")
+            return node.get('next_not_found')

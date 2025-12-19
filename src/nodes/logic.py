@@ -10,7 +10,7 @@ class LoopNode(NodeHandler):
     def node_type(self): return "loop"
     
     def execute(self, node: Dict[str, Any], context: RuntimeContext) -> Optional[str]:
-        node_id = node['id']
+        node_id = str(node['id']) # Standardize to string
         props = node.get('properties', {})
         
         # Initialize
@@ -46,7 +46,7 @@ class LoopBreakNode(NodeHandler):
     def execute(self, node: Dict[str, Any], context: RuntimeContext) -> Optional[str]:
         log_message("Loop Break...")
         if context.loop_stack:
-            target_id = context.loop_stack.pop()
+            target_id = str(context.loop_stack.pop()) # Standardize to string
             context.loop_states.pop(target_id, None)
             
             # We need to find the 'next_exit' of the target loop node.

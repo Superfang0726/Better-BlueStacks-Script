@@ -532,6 +532,8 @@
 
                 <h3>視覺辨識</h3>
                 <button class="node-btn btn-find" onclick="addNode('bot/find_image')">🖼️ 找圖 (Find Image)</button>
+                <button class="node-btn btn-click" style="border-left: 3px solid #00BCD4;"
+                    onclick="addNode('bot/check_pixel')">📍 像素判斷 (Check Pixel)</button>
 
                 <h3>Discord Bot</h3>
                 <button class="node-btn" style="border-left: 3px solid #7289da;" onclick="openDiscordSettings()">⚙️ 設定
@@ -900,6 +902,46 @@
         };
         LiteGraph.registerNodeType("bot/find_image", NodeFindImage);
 
+        // 7.5 Check Pixel Color (NEW)
+        function NodeCheckPixel() {
+            var that = this;
+            this.addInput("Exec", "ACTION");
+            this.addOutput("Found", "ACTION");
+            this.addOutput("Not Found", "ACTION");
+            this.addInput("X", "number");
+            this.addInput("Y", "number");
+            this.properties = { x: 0, y: 0, expected_color: "#FFFFFF", tolerance: 10 };
+
+            this.addWidget("number", "X", 0, function (v) { that.properties.x = v; }, { precision: 0 });
+            this.addWidget("number", "Y", 0, function (v) { that.properties.y = v; }, { precision: 0 });
+            this.addWidget("text", "Color (Hex)", "#FFFFFF", function (v) { that.properties.expected_color = v; });
+            this.addWidget("number", "Tolerance", 10, function (v) { that.properties.tolerance = v; }, { min: 0, max: 255 });
+
+            this.title = "Check Pixel";
+            this.bgcolor = "#00BCD4";
+            this.size = [220, 170];
+        }
+        NodeCheckPixel.title = "Check Pixel";
+        NodeCheckPixel.prototype.onDrawForeground = function (ctx) {
+            if (this.flags.collapsed) return;
+            // Draw a small color preview
+            // Aligning center height with the "Color (Hex)" widget (3rd widget)
+            // Title(30) + 3 Slots(60) + 2 Widgets(40) = 130 is the top of the 3rd widget.
+            ctx.fillStyle = this.properties.expected_color;
+            ctx.fillRect(this.size[0] - 25, 130, 20, 20);
+            ctx.strokeStyle = "#eee";
+            ctx.strokeRect(this.size[0] - 25, 130, 20, 20);
+        };
+        NodeCheckPixel.prototype.onConfigure = function () {
+            if (this.widgets) {
+                if (this.widgets[0]) this.widgets[0].value = this.properties.x;
+                if (this.widgets[1]) this.widgets[1].value = this.properties.y;
+                if (this.widgets[2]) this.widgets[2].value = this.properties.expected_color;
+                if (this.widgets[3]) this.widgets[3].value = this.properties.tolerance;
+            }
+        };
+        LiteGraph.registerNodeType("bot/check_pixel", NodeCheckPixel);
+
         // 8. Discord Send Message
         function NodeDiscordSend() {
             this.addInput("Exec", "ACTION");
@@ -1137,6 +1179,19 @@
             };
         }
 
+        function getPixelColorAt(img, x, y) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = img.naturalWidth;
+            tempCanvas.height = img.naturalHeight;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const data = ctx.getImageData(x, y, 1, 1).data;
+            const r = data[0];
+            const g = data[1];
+            const b = data[2];
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        }
+
         function showCoords(event) {
             if (isCoordsLocked) return;
 
@@ -1200,6 +1255,19 @@
                     node.widgets[3].value = y;
                     showToast(`Updated Swipe End to (${x}, ${y})`);
                 }
+            } else if (node.type === "bot/check_pixel") {
+                node.properties.x = x;
+                node.properties.y = y;
+                const img = document.getElementById('screenPreview');
+                const color = getPixelColorAt(img, x, y);
+                node.properties.expected_color = color;
+
+                if (node.widgets) {
+                    if (node.widgets[0]) node.widgets[0].value = x;
+                    if (node.widgets[1]) node.widgets[1].value = y;
+                    if (node.widgets[2]) node.widgets[2].value = color;
+                }
+                showToast(`Updated Pixel Check: (${x}, ${y}) Color: ${color}`);
             } else {
                 showToast("Node not supported for coords: " + node.type, 'error');
             }
@@ -1286,7 +1354,7 @@
                 return null;
             }
 
-            const getNode = (id) => nodes.find(n => n.id === id);
+            const getNode = (id) => nodes.find(n => n.id == id);
 
             nodes.forEach(node => {
                 let cmd = {
@@ -1309,9 +1377,18 @@
                                         if (output.name === "Body") cmd.next_body = targetNode.id;
                                         if (output.name === "Exit") cmd.next_exit = targetNode.id;
                                     }
-                                    else if (node.type === "bot/find_image") {
-                                        if (output.name === "Found") cmd.next_found = targetNode.id;
-                                        if (output.name === "Not Found") cmd.next_not_found = targetNode.id;
+                                    else if (node.type === "bot/find_image" || node.type === "bot/check_pixel" || node.type === "find_image" || node.type === "check_pixel") {
+                                        const outName = (output.name || "").toLowerCase();
+                                        if (outName.includes("found") && !outName.includes("not")) {
+                                            cmd.next_found = targetNode.id;
+                                        } else if (outName.includes("not found")) {
+                                            cmd.next_not_found = targetNode.id;
+                                        } else if (index === 0) {
+                                            cmd.next_found = targetNode.id;
+                                        } else if (index === 1) {
+                                            cmd.next_not_found = targetNode.id;
+                                        }
+                                        console.log(`Node ${node.id} (${node.type}) output ${index} mapped to ${targetNode.id}. next_found: ${cmd.next_found}, next_not_found: ${cmd.next_not_found}`);
                                     }
                                     else {
                                         // Default linear
