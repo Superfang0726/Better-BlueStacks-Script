@@ -1,6 +1,6 @@
-# BlueStacks Visual Scripting Automation
+# Better-BlueStacks-Script
 
-這是一個基於 Web 的可視化自動化工具，專為 BlueStacks 模擬器設計。透過直觀的節點編輯器 (Node Editor)，您可以輕鬆設拖拉並連接節點來建立自動化腳本，無需編寫複雜的程式碼。
+這是一個基於 Web 的可視化自動化工具，專為 BlueStacks 模擬器設計。透過直觀的節點編輯器 (Node Editor)，您可以輕鬆拖拉並連接節點來建立自動化腳本，無需編寫複雜的程式碼。
 
 ## ✨ 主要功能
 
@@ -11,14 +11,19 @@
     - **Auto 模式**：優先使用 SIFT (抗旋轉/縮放)，失敗自動切換至 Template Matching (精確比對)。
     - **手動模式**：可指定 SIFT 或 Template Matching。
     - **資料流 (Data Flow)**：找到的座標 (X, Y) 可直接傳遞給點擊或滑動節點。
+  - **像素顏色判斷 (Check Pixel)**：檢測特定座標的顏色是否匹配，支援容差設定。
 - **邏輯控制**：
   - **迴圈 (Loop)**：支援指定次數或是無限迴圈 (0)。
   - **中斷 (Break)**：條件式跳出迴圈。
   - **巢狀腳本 (Run Script)**：可呼叫其他已儲存的腳本，實現模組化設計。
+- **Discord 整合**：
+  - **傳送訊息**：腳本執行時發送 Discord 通知。
+  - **等待指令**：透過 Discord 斜線指令遠端控制腳本流程。
+  - **截圖分享**：將遊戲畫面截圖發送至 Discord。
 - **即時監控與工具**：
   - **網頁介面**：瀏覽器即開即用 (預設 Port 5000)。
   - **螢幕截圖**：即時預覽遊戲畫面。
-  - **座標拾取**：點擊預覽圖即可自動填入座標。
+  - **座標與顏色拾取**：點擊預覽圖即可自動填入座標與顏色值。
   - **腳本管理**：線上儲存、載入與管理腳本。
 
 ## 🚀 快速開始
@@ -51,8 +56,9 @@
 
 2.  **Sidebar (左側選單)**：
     - **流程控制**：Start, Wait, Loop, Break, Call Script。
-    - **基本動作**：Click, Swipe。
-    - **視覺辨識**：Find Image (支援 SIFT/Template)。
+    - **基本動作**：Click, Swipe, Home, Recent Apps。
+    - **視覺辨識**：Find Image, Check Pixel。
+    - **Discord**：Send Message, Wait Command, Screenshot。
 
 3.  **Canvas (中間畫布)**：
     - 拖拉節點進行編輯。
@@ -71,9 +77,13 @@
 | **Wait** | 等待指定秒數。 |
 | **Loop** | 迴圈區塊。`Body` 輸出執行內容，`Exit` 輸出迴圈結束後的路徑。Count設為 0 為無限迴圈。 |
 | **Find Image** | 在畫面搜尋圖片。支援 `Auto`, `SIFT`, `Template` 演算法。輸出 `Found` 或 `Not Found` 路徑，以及 `X`, `Y` 座標。 |
+| **Check Pixel** | 檢查指定座標的像素顏色是否匹配。支援顏色容差 (Tolerance)。輸出 `Found` 或 `Not Found`。 |
 | **Click** | 點擊指定座標。可接收來自 `Find Image` 的 (X, Y) 輸入。 |
 | **Swipe** | 執行滑動操作。 |
 | **Call Script** | 執行另一個已儲存的 JSON 腳本。 |
+| **Discord Send** | 發送訊息至 Discord。 |
+| **Discord Wait** | 等待 Discord 斜線指令觸發後繼續執行。 |
+| **Discord Screenshot** | 擷取畫面並發送至 Discord。 |
 
 ## ADB 設定
 
