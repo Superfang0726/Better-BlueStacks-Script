@@ -66,3 +66,35 @@ class CheckPixelNode(NodeHandler):
         else:
             log_message("Failed to get pixel color.")
             return node.get('next_not_found')
+
+class FindMultiImagesNode(NodeHandler):
+    @property
+    def node_type(self): return "find_multi_images"
+    
+    def execute(self, node: Dict[str, Any], context: RuntimeContext) -> Optional[str]:
+        props = node.get('properties', {})
+        node_id = node['id']
+        templates_str = props.get('templates', '')
+        algorithm = props.get('algorithm', 'auto')
+        
+        # Parse templates: support comma-separated or newline-separated
+        templates = [t.strip() for t in templates_str.replace('\n', ',').split(',') if t.strip()]
+        
+        if not templates:
+            log_message("No templates specified for multi-image search.")
+            return node.get('next_not_found')
+        
+        log_message(f"Searching {len(templates)} images: {', '.join(templates)}")
+        
+        for template in templates:
+            log_message(f"Checking: {template} (Algo: {algorithm})")
+            center = context.bot.find_and_click(template, click_target=False, method=algorithm, timeout=1)
+            
+            if center:
+                log_message(f"✓ Found: {template} at ({center[0]}, {center[1]})")
+                context.set_output(node_id, 2, center[0])  # Slot 2: X
+                context.set_output(node_id, 3, center[1])  # Slot 3: Y
+                return node.get('next_found')
+        
+        log_message(f"✗ None of {len(templates)} images found.")
+        return node.get('next_not_found')

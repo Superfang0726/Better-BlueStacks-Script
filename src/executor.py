@@ -7,7 +7,7 @@ import shared  # For checking is_running globally
 
 # Import all nodes to register them
 from nodes.basic import StartNode, ClickNode, SwipeNode, WaitNode, ClearAppsNode, HomeNode
-from nodes.vision import FindImageNode, CheckPixelNode
+from nodes.vision import FindImageNode, CheckPixelNode, FindMultiImagesNode
 from nodes.logic import LoopNode, LoopBreakNode, ScriptNode
 from nodes.discord_nodes import DiscordSendNode, DiscordWaitNode, DiscordScreenshotNode
 
@@ -44,6 +44,7 @@ class NodeRegistry:
         cls.register(DiscordWaitNode)
         cls.register(DiscordScreenshotNode)
         cls.register(CheckPixelNode)
+        cls.register(FindMultiImagesNode)
         cls.register(ClearAppsNode)
         cls.register(HomeNode)
 

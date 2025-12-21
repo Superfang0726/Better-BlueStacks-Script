@@ -427,6 +427,32 @@
     <!-- Toast -->
     <div id="toast-notification">Notification</div>
 
+    <!-- General Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">⚙️ General Settings</div>
+            <div style="padding: 15px;">
+                <h4 style="margin-top:0;">ADB Connection</h4>
+                <label style="display:block; margin-bottom:5px;">ADB Host:</label>
+                <input type="text" id="settings-adb-host" placeholder="127.0.0.1"
+                    style="width:100%; margin-bottom:10px;">
+
+                <label style="display:block; margin-bottom:5px;">ADB Port:</label>
+                <input type="number" id="settings-adb-port" placeholder="5555" style="width:100%; margin-bottom:15px;">
+
+                <h4>Web Server</h4>
+                <label style="display:block; margin-bottom:5px;">Web Port:</label>
+                <input type="number" id="settings-web-port" placeholder="5000" style="width:100%;">
+                <p style="font-size:11px; color:#888; margin-top:5px;">* Web Port 變更需要重啟伺服器才會生效。</p>
+            </div>
+            <div class="modal-footer">
+                <button class="run-btn" style="background:#7f8c8d; margin-right: 10px;"
+                    onclick="closeGeneralSettings()">Cancel</button>
+                <button class="run-btn" style="background:#2ecc71;" onclick="saveGeneralSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Header moved inside main-layout -->
     <div id="discord-modal" class="modal-overlay">
         <div class="modal-content" style="max-width: 800px; width: 90%;">
@@ -494,8 +520,9 @@
             style="background: #2c3e50; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
             <h2 style="margin:0;">Better-BlueStacks-Script</h2>
             <div class="header-right">
+                <button onclick="openGeneralSettings()">⚙️ Settings</button>
                 <button onclick="window.location.href='/api/logs/export'">📄 Export Logs</button>
-                <button onclick="openDiscordSettings()">⚙️ Discord Settings</button>
+                <button onclick="openDiscordSettings()">🤖 Discord</button>
             </div>
         </div>
         <!-- Top Toolbar -->
@@ -532,6 +559,8 @@
 
                 <h3>視覺辨識</h3>
                 <button class="node-btn btn-find" onclick="addNode('bot/find_image')">🖼️ 找圖 (Find Image)</button>
+                <button class="node-btn" style="border-left: 3px solid #9C27B0;"
+                    onclick="addNode('bot/find_multi_images')">🖼️ 多圖搜尋 (Find Multi)</button>
                 <button class="node-btn btn-click" style="border-left: 3px solid #00BCD4;"
                     onclick="addNode('bot/check_pixel')">📍 像素判斷 (Check Pixel)</button>
 
@@ -941,6 +970,92 @@
             }
         };
         LiteGraph.registerNodeType("bot/check_pixel", NodeCheckPixel);
+
+        // 7.6 Find Multi Images (NEW)
+        function NodeFindMultiImages() {
+            var that = this;
+            this.addInput("Exec", "ACTION");
+            this.addOutput("Found", "ACTION");
+            this.addOutput("Not Found", "ACTION");
+            this.addOutput("X", "number");
+            this.addOutput("Y", "number");
+            this.properties = { templates: "", algorithm: "auto" };
+            this.selectedImages = [];
+
+            // Button shows count and opens management menu
+            this.widget_btn = this.addWidget("button", "📁 0 Images", null, function (v, canvas, node, pos, event) {
+                that.showImageManagementMenu(event);
+            });
+
+            // Algorithm selector
+            this.addWidget("combo", "Algo", "auto", function (v) { that.properties.algorithm = v; }, { values: ["auto", "sift", "template"] });
+
+            this.title = "Find Multi Images";
+            this.bgcolor = "#9C27B0";
+            this.size = [220, 130];
+        }
+        NodeFindMultiImages.title = "Find Multi Images";
+        NodeFindMultiImages.desc = "Search for any of multiple images";
+
+        // Show context menu for managing images
+        NodeFindMultiImages.prototype.showImageManagementMenu = function (event) {
+            var that = this;
+            var menuItems = [];
+
+            // Add existing images with remove option
+            this.selectedImages.forEach(function (img, idx) {
+                var displayName = img.split('/').pop();
+                menuItems.push({
+                    content: "❌ " + displayName,
+                    callback: function () {
+                        that.selectedImages.splice(idx, 1);
+                        that.updateButtonLabel();
+                        that.properties.templates = that.selectedImages.join(",");
+                        that.setDirtyCanvas(true, true);
+                    }
+                });
+            });
+
+            // Separator if there are images
+            if (menuItems.length > 0) {
+                menuItems.push(null); // Separator
+            }
+
+            // Add new image option
+            menuItems.push({
+                content: "➕ Add Image...",
+                callback: function () {
+                    fetchImageMenu(event, function (path) {
+                        if (!that.selectedImages.includes(path)) {
+                            that.selectedImages.push(path);
+                            that.updateButtonLabel();
+                            that.properties.templates = that.selectedImages.join(",");
+                            that.setDirtyCanvas(true, true);
+                        }
+                    });
+                }
+            });
+
+            // Show LiteGraph context menu
+            new LiteGraph.ContextMenu(menuItems, { event: event, title: "Manage Images" });
+        };
+
+        // Update button label to show image count
+        NodeFindMultiImages.prototype.updateButtonLabel = function () {
+            var count = this.selectedImages.length;
+            this.widget_btn.name = "📁 " + count + " Image" + (count !== 1 ? "s" : "");
+        };
+
+        NodeFindMultiImages.prototype.onConfigure = function () {
+            if (this.properties.templates) {
+                this.selectedImages = this.properties.templates.split(",").filter(function (s) { return s.trim(); });
+            }
+            this.updateButtonLabel();
+            if (this.widgets && this.widgets[1]) {
+                this.widgets[1].value = this.properties.algorithm;
+            }
+        };
+        LiteGraph.registerNodeType("bot/find_multi_images", NodeFindMultiImages);
 
         // 8. Discord Send Message
         function NodeDiscordSend() {
@@ -1377,7 +1492,7 @@
                                         if (output.name === "Body") cmd.next_body = targetNode.id;
                                         if (output.name === "Exit") cmd.next_exit = targetNode.id;
                                     }
-                                    else if (node.type === "bot/find_image" || node.type === "bot/check_pixel" || node.type === "find_image" || node.type === "check_pixel") {
+                                    else if (node.type === "bot/find_image" || node.type === "bot/check_pixel" || node.type === "bot/find_multi_images" || node.type === "find_image" || node.type === "check_pixel" || node.type === "find_multi_images") {
                                         const outName = (output.name || "").toLowerCase();
                                         if (outName.includes("found") && !outName.includes("not")) {
                                             cmd.next_found = targetNode.id;
@@ -1576,6 +1691,60 @@
                 if (name) commands.push({ name, desc });
             });
             return commands;
+        }
+
+        // --- GENERAL SETTINGS ---
+        function openGeneralSettings() {
+            const modal = document.getElementById('settings-modal');
+            modal.style.display = 'flex';
+
+            // Load current settings
+            fetch('/api/settings')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('settings-adb-host').value = data.adb_host || '';
+                    document.getElementById('settings-adb-port').value = data.adb_port || '';
+                    document.getElementById('settings-web-port').value = data.web_port || '';
+                })
+                .catch(e => console.error(e));
+        }
+
+        function closeGeneralSettings() {
+            document.getElementById('settings-modal').style.display = 'none';
+        }
+
+        function saveGeneralSettings() {
+            const adbHost = document.getElementById('settings-adb-host').value.trim();
+            const adbPort = document.getElementById('settings-adb-port').value.trim();
+            const webPort = document.getElementById('settings-web-port').value.trim();
+
+            fetch('/api/settings')
+                .then(r => r.json())
+                .then(currentSettings => {
+                    const newSettings = { ...currentSettings };
+                    if (adbHost) newSettings.adb_host = adbHost;
+                    if (adbPort) newSettings.adb_port = parseInt(adbPort);
+                    if (webPort) newSettings.web_port = parseInt(webPort);
+
+                    return fetch('/api/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newSettings)
+                    });
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        showToast('Settings saved!');
+                        closeGeneralSettings();
+                    } else {
+                        showToast('Failed to save settings', true);
+                    }
+                })
+                .catch(e => {
+                    console.error(e);
+                    showToast('Error saving settings', true);
+                });
         }
 
         // --- DISCORD SETTINGS ---

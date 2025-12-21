@@ -97,7 +97,7 @@ class ScriptService:
             if node_type == 'loop':
                 new_node['next_body'] = conns.get(str(0)) or conns.get(0)
                 new_node['next_exit'] = conns.get(str(1)) or conns.get(1)
-            elif node_type in ['find_image', 'check_pixel']:
+            elif node_type in ['find_image', 'check_pixel', 'find_multi_images']:
                 # Support both int and string keys for robustness
                 # Try slot 0 (Found) and slot 1 (Not Found)
                 new_node['next_found'] = conns.get(0) or conns.get(str(0))

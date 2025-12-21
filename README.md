@@ -1,93 +1,118 @@
 # Better-BlueStacks-Script
 
-這是一個基於 Web 的可視化自動化工具，專為 BlueStacks 模擬器設計。透過直觀的節點編輯器 (Node Editor)，您可以輕鬆拖拉並連接節點來建立自動化腳本，無需編寫複雜的程式碼。
+> 📖 **[中文版 README](README_ZH.md)**
 
-## ✨ 主要功能
+A web-based visual automation tool designed for BlueStacks emulator. Using an intuitive Node Editor, you can easily drag, drop, and connect nodes to create automation scripts without writing complex code.
 
-- **可視化腳本編輯**：使用 LiteGraph.js 構建的直觀介面，透過連線控制執行流程。
-- **強大的執行引擎**：
-  - **ADB 控制**：支援後台執行點擊 (Click) 與滑動 (Swipe)。
-  - **智慧找圖 (Find Image)**：
-    - **Auto 模式**：優先使用 SIFT (抗旋轉/縮放)，失敗自動切換至 Template Matching (精確比對)。
-    - **手動模式**：可指定 SIFT 或 Template Matching。
-    - **資料流 (Data Flow)**：找到的座標 (X, Y) 可直接傳遞給點擊或滑動節點。
-  - **像素顏色判斷 (Check Pixel)**：檢測特定座標的顏色是否匹配，支援容差設定。
-- **邏輯控制**：
-  - **迴圈 (Loop)**：支援指定次數或是無限迴圈 (0)。
-  - **中斷 (Break)**：條件式跳出迴圈。
-  - **巢狀腳本 (Run Script)**：可呼叫其他已儲存的腳本，實現模組化設計。
-- **Discord 整合**：
-  - **傳送訊息**：腳本執行時發送 Discord 通知。
-  - **等待指令**：透過 Discord 斜線指令遠端控制腳本流程。
-  - **截圖分享**：將遊戲畫面截圖發送至 Discord。
-- **即時監控與工具**：
-  - **網頁介面**：瀏覽器即開即用 (預設 Port 5000)。
-  - **螢幕截圖**：即時預覽遊戲畫面。
-  - **座標與顏色拾取**：點擊預覽圖即可自動填入座標與顏色值。
-  - **腳本管理**：線上儲存、載入與管理腳本。
+## ✨ Features
 
-## 🚀 快速開始
+- **Visual Script Editing**: Intuitive interface built with LiteGraph.js, control execution flow through connections.
+- **Powerful Execution Engine**:
+  - **ADB Control**: Background click and swipe operations.
+  - **Smart Image Finding**:
+    - **Find Image**: Search for a single image with SIFT/Template matching.
+    - **Find Multi Images**: Search for ANY of multiple images - returns Found if any match.
+    - **Data Flow**: Found coordinates (X, Y) can be passed to Click or Swipe nodes.
+  - **Pixel Color Detection (Check Pixel)**: Check if a specific coordinate matches a target color, with tolerance support.
+- **Logic Control**:
+  - **Loop**: Supports fixed count or infinite loop (set to 0).
+  - **Break**: Conditionally exit loops.
+  - **Nested Scripts (Call Script)**: Execute other saved scripts for modular design.
+- **Discord Integration**:
+  - **Send Message**: Send Discord notifications during script execution.
+  - **Wait Command**: Control script flow remotely via Discord slash commands.
+  - **Screenshot**: Capture and send game screenshots to Discord.
+- **Real-time Monitoring & Tools**:
+  - **Web Interface**: Browser-ready (default Port 5000).
+  - **Screen Capture**: Live preview of game screen.
+  - **Coordinate & Color Picker**: Click on preview to auto-fill coordinates and color values.
+  - **Script Management**: Save, load, and manage scripts online.
 
-### 方法一：使用 Docker (推薦)
+## 🚀 Quick Start
 
-只需雙擊執行專案目錄下的 `setup_docker.bat` 檔案。
-它會自動建置環境並啟動服務，完成後請瀏覽器打開 `http://localhost:5000`。
+### Method 1: Using Docker (Recommended)
 
-### 方法二：手動執行 (Python)
+Simply double-click `setup_docker.bat` in the project directory.
+It will automatically build the environment and start the service. Open `http://localhost:5000` in your browser.
 
-1.  **安裝依賴**：
+### Method 2: Manual Execution (Python)
+
+1.  **Install Dependencies**:
     ```bash
     pip install -r requirements.txt
     ```
-2.  **執行伺服器**：
+2.  **Run Server**:
     ```bash
     python run.py
     ```
-3.  **打開瀏覽器**：
-    訪問 `http://127.0.0.1:5000`。
+3.  **Open Browser**:
+    Navigate to `http://127.0.0.1:5000`.
 
-## 🛠️ 介面說明
+## 🛠️ Interface Guide
 
-1.  **Toolbar (上方工具列)**：
-    - **執行 (Run)**：開始執行當前畫布上的腳本。
-    - **停止 (Stop)**：強制停止執行。
-    - **清空 (Clear)**：清除畫布所有節點。
-    - **儲存/載入**：管理您的腳本檔案。
+1.  **Toolbar (Top)**:
+    - **Run**: Start executing the current canvas script.
+    - **Stop**: Force stop execution.
+    - **Clear**: Clear all nodes from canvas.
+    - **Save/Load**: Manage your script files.
 
-2.  **Sidebar (左側選單)**：
-    - **流程控制**：Start, Wait, Loop, Break, Call Script。
-    - **基本動作**：Click, Swipe, Home, Recent Apps。
-    - **視覺辨識**：Find Image, Check Pixel。
-    - **Discord**：Send Message, Wait Command, Screenshot。
+2.  **Sidebar (Left)**:
+    - **Flow Control**: Start, Wait, Loop, Break, Call Script.
+    - **Basic Actions**: Click, Swipe, Home, Recent Apps.
+    - **Vision**: Find Image, Find Multi Images, Check Pixel.
+    - **Discord**: Send Message, Wait Command, Screenshot.
 
-3.  **Canvas (中間畫布)**：
-    - 拖拉節點進行編輯。
-    - **Delete/Backspace**：刪除選取的節點。
+3.  **Canvas (Center)**:
+    - Drag and drop nodes for editing.
+    - **Delete/Backspace**: Remove selected nodes.
 
-4.  **Monitor (右側面板)**：
-    - **預覽畫面**：顯示截圖與滑鼠座標。
-    - **測試連線**：發送 Home 鍵測試 ADB 連接。
-    - **Log Console**：顯示執行日誌與錯誤訊息。
+4.  **Monitor (Right Panel)**:
+    - **Preview**: Display screenshots and mouse coordinates.
+    - **Test Connection**: Send Home key to test ADB connection.
+    - **Log Console**: Show execution logs and error messages.
 
-## 📝 節點介紹
+## 📝 Node Reference
 
-| 節點類型 | 描述 |
+| Node Type | Description |
 | :--- | :--- |
-| **Start** | 腳本的起點，必須存在。 |
-| **Wait** | 等待指定秒數。 |
-| **Loop** | 迴圈區塊。`Body` 輸出執行內容，`Exit` 輸出迴圈結束後的路徑。Count設為 0 為無限迴圈。 |
-| **Find Image** | 在畫面搜尋圖片。支援 `Auto`, `SIFT`, `Template` 演算法。輸出 `Found` 或 `Not Found` 路徑，以及 `X`, `Y` 座標。 |
-| **Check Pixel** | 檢查指定座標的像素顏色是否匹配。支援顏色容差 (Tolerance)。輸出 `Found` 或 `Not Found`。 |
-| **Click** | 點擊指定座標。可接收來自 `Find Image` 的 (X, Y) 輸入。 |
-| **Swipe** | 執行滑動操作。 |
-| **Call Script** | 執行另一個已儲存的 JSON 腳本。 |
-| **Discord Send** | 發送訊息至 Discord。 |
-| **Discord Wait** | 等待 Discord 斜線指令觸發後繼續執行。 |
-| **Discord Screenshot** | 擷取畫面並發送至 Discord。 |
+| **Start** | Entry point of the script. Required. |
+| **Wait** | Wait for specified seconds. |
+| **Loop** | Loop block. `Body` output for loop content, `Exit` for post-loop path. Count 0 = infinite. |
+| **Find Image** | Search for a single image on screen. Supports `Auto`, `SIFT`, `Template` algorithms. |
+| **Find Multi Images** | Search for ANY of multiple images. Click button to add/remove images. Returns Found if any match. |
+| **Check Pixel** | Check if pixel color at coordinates matches. Supports tolerance. |
+| **Click** | Click at specified coordinates. Can receive (X, Y) from image nodes. |
+| **Swipe** | Perform swipe operation. |
+| **Call Script** | Execute another saved JSON script. |
+| **Discord Send** | Send message to Discord. |
+| **Discord Wait** | Wait for Discord slash command trigger to continue. |
+| **Discord Screenshot** | Capture screen and send to Discord. |
 
-## ADB 設定
+## ⚙️ Configuration (settings.json)
 
-請確保 BlueStacks 已啟用 ADB：
-1.  進入 BlueStacks 設定 > 進階 (Advanced)。
-2.  勾選「啟用 Android Debug Bridge (ADB)」。
-3.  預設連接 `127.0.0.1:5555`。若 Port 不同，請設定環境變數 `ADB_PORT`。
+You can create or edit `settings.json` in the project root to customize settings:
+
+```json
+{
+    "adb_host": "127.0.0.1",
+    "adb_port": 5555,
+    "web_port": 5000,
+    "discord_token": "YOUR_DISCORD_BOT_TOKEN",
+    "user_id": "YOUR_DISCORD_USER_ID"
+}
+```
+
+| Setting | Description | Default |
+| :--- | :--- | :--- |
+| `adb_host` | BlueStacks ADB host address | `127.0.0.1` |
+| `adb_port` | BlueStacks ADB port | `5555` |
+| `web_port` | Web interface port | `5000` |
+| `discord_token` | Discord Bot Token (optional) | - |
+| `user_id` | Discord User ID for notifications (optional) | - |
+
+## ADB Setup
+
+Ensure ADB is enabled in BlueStacks:
+1.  Go to BlueStacks Settings > Advanced.
+2.  Enable "Android Debug Bridge (ADB)".
+3.  If port is not default 5555, set `adb_port` in `settings.json`.

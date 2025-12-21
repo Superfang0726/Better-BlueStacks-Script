@@ -26,10 +26,16 @@ def get_bot(bot_instance=None):
     if bot_instance is None:
         start_adb_server()
         import os
-        default_host = "host.docker.internal" if os.environ.get("ADB_HOST") == "host.docker.internal" else "127.0.0.1"
-        device_host = os.environ.get("ADB_HOST", default_host)
-        device_port = int(os.environ.get("ADB_PORT", 5555))
+        from settings import load_settings
         
+        settings = load_settings()
+        
+        # Priority: Environment Variable > settings.json > Default
+        default_host = "host.docker.internal" if os.environ.get("ADB_HOST") == "host.docker.internal" else "127.0.0.1"
+        device_host = os.environ.get("ADB_HOST") or settings.get("adb_host") or default_host
+        device_port = int(os.environ.get("ADB_PORT") or settings.get("adb_port") or 5555)
+        
+        log_message(f"Connecting to ADB at {device_host}:{device_port}")
         bot_instance = BlueStacksBot(device_host=device_host, device_port=device_port, logger=log_message)
     return bot_instance
 
