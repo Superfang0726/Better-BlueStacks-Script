@@ -7,18 +7,41 @@ class ScriptService:
     SCRIPTS_DIR = 'scripts'
 
     @staticmethod
-    def load_and_normalize(script_name: str) -> List[Dict[str, Any]]:
+    def load_and_normalize(script_name: str, return_path: bool = False):
         """
         Load a script by name, normalize it from various stored formats 
         (Raw LiteGraph, stringified JSON, etc.) into a linear list of Engine Nodes.
+        
+        Args:
+            script_name: Name of the script to load
+            return_path: If True, return (nodes, script_folder_path) tuple
+            
+        Returns:
+            List of normalized nodes, or (nodes, path) tuple if return_path=True
         """
-        script_path = os.path.join(ScriptService.SCRIPTS_DIR, f"{script_name}.json")
-        if not os.path.exists(script_path):
-            log_message(f"Error: Script file '{script_name}' not found.")
-            return []
+        script_folder = None
+        script_file = None
+        
+        # Check new folder format first
+        folder_path = os.path.join(ScriptService.SCRIPTS_DIR, script_name)
+        folder_script = os.path.join(folder_path, 'script.json')
+        
+        if os.path.exists(folder_script):
+            script_file = folder_script
+            script_folder = folder_path
+        else:
+            # Fallback to legacy .json format
+            legacy_path = os.path.join(ScriptService.SCRIPTS_DIR, f"{script_name}.json")
+            if os.path.exists(legacy_path):
+                script_file = legacy_path
+                script_folder = None  # Legacy scripts have no local folder
+        
+        if not script_file:
+            log_message(f"Error: Script '{script_name}' not found.")
+            return ([], None) if return_path else []
 
         try:
-            with open(script_path, 'r', encoding='utf-8') as f:
+            with open(script_file, 'r', encoding='utf-8') as f:
                 script_data = json.load(f)
 
             # Handle Double-JSON encoding (fix from previous sessions)
@@ -27,12 +50,13 @@ class ScriptService:
                     script_data = json.loads(script_data)
                 except Exception as e:
                     log_message(f"Error parsing script JSON string: {e}")
-                    return []
+                    return ([], None) if return_path else []
 
-            return ScriptService.normalize(script_data)
+            nodes = ScriptService.normalize(script_data)
+            return (nodes, script_folder) if return_path else nodes
         except Exception as e:
             log_message(f"Error loading script {script_name}: {e}")
-            return []
+            return ([], None) if return_path else []
 
     @staticmethod
     def normalize(data: Any) -> List[Dict[str, Any]]:

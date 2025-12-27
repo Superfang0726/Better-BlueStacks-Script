@@ -174,8 +174,17 @@ def configure_routes(app):
     def list_scripts():
         ensure_scripts_dir()
         try:
-            files = [f.replace('.json', '') for f in os.listdir(SCRIPTS_DIR) if f.endswith('.json')]
-            return jsonify({"scripts": files})
+            scripts = []
+            for entry in os.listdir(SCRIPTS_DIR):
+                entry_path = os.path.join(SCRIPTS_DIR, entry)
+                # New format: folder with script.json inside
+                if os.path.isdir(entry_path):
+                    if os.path.exists(os.path.join(entry_path, 'script.json')):
+                        scripts.append(entry)
+                # Legacy format: direct .json file
+                elif entry.endswith('.json'):
+                    scripts.append(entry.replace('.json', ''))
+            return jsonify({"scripts": scripts})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -190,9 +199,39 @@ def configure_routes(app):
             return jsonify({"error": "Missing name or content"}), 400
             
         try:
-            filepath = os.path.join(SCRIPTS_DIR, f"{name}.json")
-            with open(filepath, 'w', encoding='utf-8') as f:
+            from services.image_utils import extract_image_paths_from_script, copy_images_to_script_folder
+            
+            # Create script folder
+            script_folder = os.path.join(SCRIPTS_DIR, name)
+            os.makedirs(script_folder, exist_ok=True)
+            
+            # Save script.json
+            script_file = os.path.join(script_folder, 'script.json')
+            with open(script_file, 'w', encoding='utf-8') as f:
                 json.dump(content, f, indent=2, ensure_ascii=False)
+            
+            # Extract and copy images
+            # Handle double-JSON encoding: content might be a string
+            parsed_content = content
+            if isinstance(content, str):
+                try:
+                    parsed_content = json.loads(content)
+                except:
+                    parsed_content = {}
+            
+            if isinstance(parsed_content, dict) and 'nodes' in parsed_content:
+                images = extract_image_paths_from_script(parsed_content)
+                log_message(f"Found {len(images)} images in script: {images}")
+                if images:
+                    copied = copy_images_to_script_folder(images, script_folder)
+                    log_message(f"Copied {copied} images to script folder.")
+            
+            # Clean up legacy .json file if exists
+            legacy_file = os.path.join(SCRIPTS_DIR, f"{name}.json")
+            if os.path.exists(legacy_file):
+                os.remove(legacy_file)
+                log_message(f"Removed legacy file: {legacy_file}")
+            
             return jsonify({"status": "success", "message": f"Script '{name}' saved."})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -210,13 +249,23 @@ def configure_routes(app):
     def load_script(name):
         ensure_scripts_dir()
         try:
-            filepath = os.path.join(SCRIPTS_DIR, f"{name}.json")
-            if not os.path.exists(filepath):
-                 return jsonify({"error": "Script not found"}), 404
-                 
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = json.load(f)
-            return jsonify({"content": content})
+            # Check new folder format first
+            script_folder = os.path.join(SCRIPTS_DIR, name)
+            script_file = os.path.join(script_folder, 'script.json')
+            
+            if os.path.exists(script_file):
+                with open(script_file, 'r', encoding='utf-8') as f:
+                    content = json.load(f)
+                return jsonify({"content": content})
+            
+            # Fallback to legacy .json format
+            legacy_file = os.path.join(SCRIPTS_DIR, f"{name}.json")
+            if os.path.exists(legacy_file):
+                with open(legacy_file, 'r', encoding='utf-8') as f:
+                    content = json.load(f)
+                return jsonify({"content": content})
+            
+            return jsonify({"error": "Script not found"}), 404
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -224,12 +273,21 @@ def configure_routes(app):
     def delete_script(name):
         ensure_scripts_dir()
         try:
-            filepath = os.path.join(SCRIPTS_DIR, f"{name}.json")
-            if os.path.exists(filepath):
-                os.remove(filepath)
+            import shutil
+            
+            # Check new folder format first
+            script_folder = os.path.join(SCRIPTS_DIR, name)
+            if os.path.isdir(script_folder):
+                shutil.rmtree(script_folder)
                 return jsonify({"status": "success", "message": f"Script '{name}' deleted."})
-            else:
-                return jsonify({"error": "Script not found"}), 404
+            
+            # Fallback to legacy .json format
+            legacy_file = os.path.join(SCRIPTS_DIR, f"{name}.json")
+            if os.path.exists(legacy_file):
+                os.remove(legacy_file)
+                return jsonify({"status": "success", "message": f"Script '{name}' deleted."})
+            
+            return jsonify({"error": "Script not found"}), 404
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 

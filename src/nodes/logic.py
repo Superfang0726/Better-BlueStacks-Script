@@ -75,8 +75,8 @@ class ScriptNode(NodeHandler):
             log_message("Error: No script name provided.")
             return node.get('next')
             
-        # Load and Normalize
-        sub_actions = ScriptService.load_and_normalize(script_name)
+        # Load and Normalize with path for local image resolution
+        sub_actions, sub_script_path = ScriptService.load_and_normalize(script_name, return_path=True)
         
         if not sub_actions:
             return node.get('next')
@@ -155,9 +155,16 @@ class ScriptNode(NodeHandler):
                  # Let's rely on `GraphExecutor.execute` handling the node_map swappage.
                  # We will pass the same context.
                  
+                 # Save parent script_path and set sub-script path
+                 parent_script_path = context.script_path
+                 context.script_path = sub_script_path
+                 
                  context.recursion_depth += 1
                  success = context.executor.execute(sub_actions, context)
                  context.recursion_depth -= 1
+                 
+                 # Restore parent script_path
+                 context.script_path = parent_script_path
                  
                  if success:
                      log_message(f"Sub-script '{script_name}' finished normally.")

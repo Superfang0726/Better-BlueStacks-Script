@@ -31,6 +31,9 @@ class RuntimeContext:
     # Recursion Control
     recursion_depth: int = 0
     
+    # Script Path (for local image resolution)
+    script_path: str = None
+    
     def stop(self):
         self.is_running = False
         # Set all wait events to unblock threads

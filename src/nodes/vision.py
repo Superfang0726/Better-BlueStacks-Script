@@ -8,14 +8,18 @@ class FindImageNode(NodeHandler):
     def node_type(self): return "find_image"
     
     def execute(self, node: Dict[str, Any], context: RuntimeContext) -> Optional[str]:
+        from services.image_utils import resolve_template_path
+        
         props = node.get('properties', {})
         node_id = node['id']
         template = props.get('template', '')
         algorithm = props.get('algorithm', 'auto')
         
         if template:
-            log_message(f"Checking: {template} (Algo: {algorithm})")
-            center = context.bot.find_and_click(template, click_target=False, method=algorithm)
+            # Resolve template path with script-local priority
+            resolved_path = resolve_template_path(template, context.script_path)
+            log_message(f"Checking: {resolved_path} (Algo: {algorithm})")
+            center = context.bot.find_and_click(resolved_path, click_target=False, method=algorithm)
             
             if center:
                 log_message(f"Found {template} at {center}")
@@ -72,6 +76,8 @@ class FindMultiImagesNode(NodeHandler):
     def node_type(self): return "find_multi_images"
     
     def execute(self, node: Dict[str, Any], context: RuntimeContext) -> Optional[str]:
+        from services.image_utils import resolve_template_path
+        
         props = node.get('properties', {})
         node_id = node['id']
         templates_str = props.get('templates', '')
@@ -87,8 +93,10 @@ class FindMultiImagesNode(NodeHandler):
         log_message(f"Searching {len(templates)} images: {', '.join(templates)}")
         
         for template in templates:
-            log_message(f"Checking: {template} (Algo: {algorithm})")
-            center = context.bot.find_and_click(template, click_target=False, method=algorithm, timeout=1)
+            # Resolve template path with script-local priority
+            resolved_path = resolve_template_path(template, context.script_path)
+            log_message(f"Checking: {resolved_path} (Algo: {algorithm})")
+            center = context.bot.find_and_click(resolved_path, click_target=False, method=algorithm, timeout=1)
             
             if center:
                 log_message(f"✓ Found: {template} at ({center[0]}, {center[1]})")
