@@ -30,22 +30,34 @@ A web-based visual automation tool designed for BlueStacks emulator. Using an in
 
 ## 🚀 Quick Start
 
-### Method 1: Using Docker (Recommended)
+### Method 1: Python (Recommended)
 
-Simply double-click `setup_docker.bat` in the project directory.
-It will automatically build the environment and start the service. Open `http://localhost:5000` in your browser.
+Double-click `start.bat` in the project directory.
+It will automatically create a virtual environment, install dependencies, and start the server.
+Open `http://localhost:5000` in your browser.
 
-### Method 2: Manual Execution (Python)
+### Method 2: Docker
 
-1.  **Install Dependencies**:
+Double-click `start_docker.bat` in the project directory.
+It will build the Docker environment and start the service.
+Open `http://localhost:5000` in your browser.
+
+### Method 3: Manual Execution
+
+1.  **Create Virtual Environment** (optional):
+    ```bash
+    python -m venv venv
+    venv\Scripts\activate
+    ```
+2.  **Install Dependencies**:
     ```bash
     pip install -r requirements.txt
     ```
-2.  **Run Server**:
+3.  **Run Server**:
     ```bash
     python run.py
     ```
-3.  **Open Browser**:
+4.  **Open Browser**:
     Navigate to `http://127.0.0.1:5000`.
 
 ## 🛠️ Interface Guide

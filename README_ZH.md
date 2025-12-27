@@ -30,22 +30,34 @@
 
 ## 🚀 快速開始
 
-### 方法一：使用 Docker (推薦)
+### 方法一：Python (推薦)
 
-只需雙擊執行專案目錄下的 `setup_docker.bat` 檔案。
-它會自動建置環境並啟動服務，完成後請瀏覽器打開 `http://localhost:5000`。
+雙擊執行專案目錄下的 `start.bat` 檔案。
+它會自動建立虛擬環境、安裝依賴並啟動伺服器。
+完成後請瀏覽器打開 `http://localhost:5000`。
 
-### 方法二：手動執行 (Python)
+### 方法二：使用 Docker
 
-1.  **安裝依賴**：
+雙擊執行專案目錄下的 `start_docker.bat` 檔案。
+它會自動建置 Docker 環境並啟動服務。
+完成後請瀏覽器打開 `http://localhost:5000`。
+
+### 方法三：手動執行
+
+1.  **建立虛擬環境** (選填)：
+    ```bash
+    python -m venv venv
+    venv\Scripts\activate
+    ```
+2.  **安裝依賴**：
     ```bash
     pip install -r requirements.txt
     ```
-2.  **執行伺服器**：
+3.  **執行伺服器**：
     ```bash
     python run.py
     ```
-3.  **打開瀏覽器**：
+4.  **打開瀏覽器**：
     訪問 `http://127.0.0.1:5000`。
 
 ## 🛠️ 介面說明
