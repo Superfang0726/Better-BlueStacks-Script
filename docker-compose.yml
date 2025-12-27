@@ -5,6 +5,8 @@ services:
     # Build the image from the Dockerfile in the current directory
     # 從當前目錄的 Dockerfile 建置映像檔
     build: .
+    image: bbs-image
+    container_name: bbs
 
     # Mount the current directory to /app in the container for live code updates
     # 將當前目錄掛載到容器內的 /app 以便即時更新代碼
