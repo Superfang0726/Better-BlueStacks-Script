@@ -1,5 +1,4 @@
 @echo off
-chcp 65001 >nul
 title Better BlueStacks Script
 
 echo ========================================
@@ -7,39 +6,49 @@ echo   Better BlueStacks Script Launcher
 echo ========================================
 echo.
 
+:: Check if Python is available
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Python is not installed or not in PATH!
+    echo         Please install Python 3.9+ from https://python.org
+    echo         Make sure to check "Add Python to PATH" during installation.
+    pause
+    exit /b 1
+)
+
 :: Check if venv exists
 if not exist "venv" (
-    echo [INFO] 虛擬環境不存在，正在建立...
+    echo [INFO] Virtual environment not found, creating...
     python -m venv venv
     if errorlevel 1 (
-        echo [ERROR] 建立虛擬環境失敗！請確認已安裝 Python 3.9+
+        echo [ERROR] Failed to create virtual environment!
         pause
         exit /b 1
     )
-    echo [OK] 虛擬環境建立完成
+    echo [OK] Virtual environment created
     echo.
 )
 
 :: Activate venv
-echo [INFO] 啟用虛擬環境...
+echo [INFO] Activating virtual environment...
 call venv\Scripts\activate.bat
 
 :: Check if dependencies are installed by checking for flask
 python -c "import flask" 2>nul
 if errorlevel 1 (
-    echo [INFO] 依賴套件未安裝，正在安裝...
+    echo [INFO] Dependencies not installed, installing...
     pip install -r requirements.txt
     if errorlevel 1 (
-        echo [ERROR] 安裝依賴失敗！
+        echo [ERROR] Failed to install dependencies!
         pause
         exit /b 1
     )
-    echo [OK] 依賴套件安裝完成
+    echo [OK] Dependencies installed
     echo.
 )
 
 :: Run the server
-echo [INFO] 啟動伺服器...
+echo [INFO] Starting server...
 echo.
 python run.py
 
