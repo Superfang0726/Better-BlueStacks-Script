@@ -1,11 +1,13 @@
 @echo off
 title Better BlueStacks Script
+chcp 65001 >nul
 
 echo ========================================
 echo   Better BlueStacks Script Launcher
 echo ========================================
 echo.
 
+REM Check Python
 python --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Python is not installed or not in PATH!
@@ -15,6 +17,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM Check for updates (using system Python before venv)
+echo [INFO] Checking for updates...
+python update_checker.py
+echo.
+
+REM Create venv if not exists
 if not exist "venv" (
     echo [INFO] Virtual environment not found, creating...
     python -m venv venv
@@ -30,6 +38,7 @@ if not exist "venv" (
 echo [INFO] Activating virtual environment...
 call venv\Scripts\activate.bat
 
+REM Check dependencies
 python -c "import flask" 2>nul
 if errorlevel 1 (
     echo [INFO] Dependencies not installed, installing...
