@@ -6,7 +6,6 @@ echo   Better BlueStacks Script Launcher
 echo ========================================
 echo.
 
-:: Check if Python is available
 python --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Python is not installed or not in PATH!
@@ -16,7 +15,6 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Check if venv exists
 if not exist "venv" (
     echo [INFO] Virtual environment not found, creating...
     python -m venv venv
@@ -29,11 +27,9 @@ if not exist "venv" (
     echo.
 )
 
-:: Activate venv
 echo [INFO] Activating virtual environment...
 call venv\Scripts\activate.bat
 
-:: Check if dependencies are installed by checking for flask
 python -c "import flask" 2>nul
 if errorlevel 1 (
     echo [INFO] Dependencies not installed, installing...
@@ -47,10 +43,8 @@ if errorlevel 1 (
     echo.
 )
 
-:: Run the server
 echo [INFO] Starting server...
 echo.
 python run.py
 
-:: Keep window open if server stops
 pause
