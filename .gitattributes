@@ -1,0 +1,8 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Force batch files to always use CRLF (Windows line endings)
+*.bat text eol=crlf
+
+# Force shell scripts to always use LF (Unix line endings)
+*.sh text eol=lf
