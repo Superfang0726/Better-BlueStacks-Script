@@ -624,6 +624,155 @@
         window.addEventListener("resize", resize);
         setTimeout(resize, 100);
 
+        // --- UNDO SYSTEM ---
+        var undoStack = [];
+        var maxUndoSteps = 50;
+
+        function saveUndoState() {
+            // Serialize current graph state
+            var state = graph.serialize();
+            undoStack.push(JSON.stringify(state));
+            // Limit stack size
+            if (undoStack.length > maxUndoSteps) {
+                undoStack.shift();
+            }
+        }
+
+        function undo() {
+            if (undoStack.length > 0) {
+                var state = JSON.parse(undoStack.pop());
+                graph.configure(state);
+                canvas.setDirty(true, true);
+                showToast("Undo");
+                return true;
+            }
+            return false;
+        }
+
+        // Hook into node drag start to save state
+        var originalProcessMouseDown = canvas.processMouseDown;
+        canvas.processMouseDown = function (e) {
+            // Check if clicking on a node (potential drag)
+            var node = this.graph.getNodeOnPos(e.canvasX, e.canvasY, this.visible_nodes);
+            if (node) {
+                saveUndoState();
+            }
+            return originalProcessMouseDown.apply(this, arguments);
+        };
+
+        // --- COPY/PASTE NODES ---
+        var clipboardNodes = null;
+
+        document.addEventListener("keydown", function (e) {
+            // Only handle if canvas is focused (not in input/textarea)
+            if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+            // Ctrl+Z: Undo
+            if (e.ctrlKey && e.key === "z") {
+                undo();
+                e.preventDefault();
+                return;
+            }
+
+            // Ctrl+C: Copy
+            if (e.ctrlKey && e.key === "c") {
+                var selectedNodes = [];
+                // selected_nodes is on canvas, not graph
+                for (var id in canvas.selected_nodes) {
+                    selectedNodes.push(canvas.selected_nodes[id]);
+                }
+                if (selectedNodes.length > 0) {
+                    // Serialize selected nodes with their connections
+                    clipboardNodes = {
+                        nodes: [],
+                        links: []
+                    };
+
+                    var nodeIds = selectedNodes.map(function (n) { return n.id; });
+
+                    // Copy node data
+                    selectedNodes.forEach(function (node) {
+                        clipboardNodes.nodes.push({
+                            id: node.id,
+                            type: node.type,
+                            pos: [node.pos[0], node.pos[1]],
+                            size: [node.size[0], node.size[1]],
+                            properties: JSON.parse(JSON.stringify(node.properties || {}))
+                        });
+                    });
+
+                    // Copy internal connections (links between selected nodes only)
+                    if (graph.links) {
+                        for (var linkId in graph.links) {
+                            var link = graph.links[linkId];
+                            if (link && nodeIds.includes(link.origin_id) && nodeIds.includes(link.target_id)) {
+                                clipboardNodes.links.push({
+                                    origin_id: link.origin_id,
+                                    origin_slot: link.origin_slot,
+                                    target_id: link.target_id,
+                                    target_slot: link.target_slot,
+                                    type: link.type
+                                });
+                            }
+                        }
+                    }
+
+                    showToast("Copied " + selectedNodes.length + " node(s)");
+                    e.preventDefault();
+                }
+            }
+
+            // Ctrl+V: Paste
+            if (e.ctrlKey && e.key === "v") {
+                if (clipboardNodes && clipboardNodes.nodes.length > 0) {
+                    saveUndoState(); // Save state before paste
+
+                    var idMap = {}; // old id -> new node
+                    var newNodes = [];
+                    var offset = 50; // Offset pasted nodes
+
+                    // Create new nodes
+                    clipboardNodes.nodes.forEach(function (nodeData) {
+                        var newNode = LiteGraph.createNode(nodeData.type);
+                        if (newNode) {
+                            newNode.pos = [nodeData.pos[0] + offset, nodeData.pos[1] + offset];
+                            if (nodeData.size) newNode.size = [nodeData.size[0], nodeData.size[1]];
+                            if (nodeData.properties) {
+                                for (var key in nodeData.properties) {
+                                    newNode.properties[key] = nodeData.properties[key];
+                                }
+                            }
+                            graph.add(newNode);
+                            idMap[nodeData.id] = newNode;
+                            newNodes.push(newNode);
+
+                            // Trigger onConfigure to update widgets
+                            if (newNode.onConfigure) newNode.onConfigure();
+                        }
+                    });
+
+                    // Recreate internal connections
+                    clipboardNodes.links.forEach(function (linkData) {
+                        var originNode = idMap[linkData.origin_id];
+                        var targetNode = idMap[linkData.target_id];
+                        if (originNode && targetNode) {
+                            originNode.connect(linkData.origin_slot, targetNode, linkData.target_slot);
+                        }
+                    });
+
+                    // Select pasted nodes (use canvas.selected_nodes)
+                    canvas.deselectAllNodes();
+                    newNodes.forEach(function (n) {
+                        canvas.selectNode(n, true); // true = add to selection
+                    });
+
+                    canvas.setDirty(true, true);
+                    showToast("Pasted " + newNodes.length + " node(s)");
+                    e.preventDefault();
+                }
+            }
+        });
+
         // Sidebar Pin Logic: Start Open, Collapse on Mouse Leave
         window.addEventListener('load', () => {
             const s = document.getElementById('sidebar');
@@ -1257,6 +1406,7 @@
                             console.warn("Pos calc error", err);
                         }
                     }
+                    saveUndoState(); // Save state before adding node
                     graph.add(node);
                 } else {
                     showToast("Error: Node type not found: " + type, 'error');
@@ -1428,6 +1578,7 @@
                         e.preventDefault(); // Stop Browser Back navigation or other defaults
                         e.stopPropagation(); // Stop matching other listeners
 
+                        saveUndoState(); // Save state before deletion
                         selected.forEach(node => {
                             graph.remove(node);
                         });
@@ -1558,6 +1709,7 @@
             if (confirm("Are you sure you want to clear the entire workspace?")) {
                 graph.clear();
                 initDefault();
+                undoStack.length = 0; // Clear undo stack
                 showToast("Workspace cleared.");
             }
         }
@@ -1585,6 +1737,7 @@
                 try {
                     if (typeof d.content === 'string') {
                         graph.configure(JSON.parse(d.content));
+                        undoStack.length = 0; // Clear undo stack for new script
                         showToast(`Loaded: ${name}`);
                     } else {
                         // legacy
