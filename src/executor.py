@@ -83,7 +83,7 @@ class GraphExecutor:
         try:
             current_node = None
             if start_node_id:
-                current_node = local_map.get(str(start_node_id))
+                current_node = context.node_map.get(str(start_node_id))
                 if not current_node:
                     log_message(f"Error: Start node {start_node_id} not found.")
                     return False

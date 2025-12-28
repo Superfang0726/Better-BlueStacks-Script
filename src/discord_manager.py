@@ -174,11 +174,16 @@ def run_script(actions, mode='graph'):
                 log_message(f"Warning: Command '/{cmd_name}' (Node {node['id']}) overwrites previous handler!")
             
             node_id = node['id']
-            # Logic: Start subgraph
-            def runner():
-                threading.Thread(target=execute_graph, args=(actions,), kwargs={'start_node_id': node_id}).start()
             
-            shared.command_hooks[cmd_name] = runner
+            # Factory function to properly capture node_id in closure
+            def make_runner(nid, acts):
+                def runner():
+                    log_message(f"Slash Command triggered: Starting async execution from node {nid}")
+                    threading.Thread(target=execute_graph, args=(acts,), kwargs={'start_node_id': nid}).start()
+                return runner
+            
+            shared.command_hooks[cmd_name] = make_runner(node_id, actions)
+            log_message(f"Registered Slash Command: /{cmd_name} -> Node {node_id}")
 
 
 
@@ -206,9 +211,30 @@ def run_script(actions, mode='graph'):
             log_message(f"Registered Wait Command: /{cmd_name} -> Node {node_id}")
 
         # 2. Start Execution
+        # Key change: Run main flow in separate thread if we have both Start Node AND Slash Commands
+        # This allows Slash Commands to work asynchronously
+        has_slash_commands = len(slash_nodes) > 0
+        
         if start_node:
-            execute_graph(actions)
-        elif slash_nodes:
+            if has_slash_commands:
+                # Run main flow in a separate thread so slash commands can work independently
+                log_message("Starting main flow in background thread (Slash Commands active)...")
+                main_thread = threading.Thread(target=execute_graph, args=(actions,))
+                main_thread.start()
+                
+                # Keep listening for slash commands until script is stopped
+                log_message("Listening for Slash Commands... (Press Stop to end)")
+                while shared.is_running:
+                    time.sleep(1)
+                    
+                # Wait for main thread to complete if it's still running
+                if main_thread.is_alive():
+                    log_message("Waiting for main flow to complete...")
+                    main_thread.join(timeout=5)
+            else:
+                # No slash commands, run synchronously as before
+                execute_graph(actions)
+        elif has_slash_commands:
              log_message("Listening for Slash Commands... (Press Stop to end)")
              while shared.is_running:
                  time.sleep(1)
