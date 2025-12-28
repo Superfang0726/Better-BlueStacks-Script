@@ -60,46 +60,11 @@ def execute_graph(nodes_list, recursion_depth=0, start_node_id=None):
             is_running=shared.is_running,
             discord_client=shared.discord_client,
             discord_loop=shared.discord_loop,
-            wait_events=shared.wait_events # Share global wait events for now
+            wait_events=shared.wait_events
         )
         context.recursion_depth = recursion_depth
         
-        # Setup Start Node Logic for Executor
-        # Executor looks for 'start' node or uses first.
-        # If start_node_id is provided, we might need to filter or reorder?
-        # GraphExecutor doesn't explicitly support start_node_id argument in execute yet.
-        # It finds 'start' type.
-        # If start_node_id is passed, it implies starting from a SPECIFIC node (e.g. Slash Command trigger).
-        # We need to handle this.
-        
-        # Quick fix: If start_node_id represents a 'start' type node, it's fine.
-        # If it represents an arbitrary node, we need Executor to support starting from ID.
-        
-        # Let's modify nodes_list logic if start_node_id is provided?
-        # A slash command trigger starts from a 'bot/discord_slash' node usually.
-        # Engine.py previously did: current_node = node_map.get(start_node_id)
-        
-        # We should update GraphExecutor to support start_node_id, 
-        # OR we just handle it here by passing a modified list? No, connections rely on full list.
-        
         executor = GraphExecutor()
-        
-        # We need to tell Executor WHERE to start if start_node_id is set.
-        # Implementation Detail: context could hold 'start_node_id'?
-        # Or we temporarily modify Executor?
-        
-        # For now, let's update GraphExecutor in a separate tool call if needed, 
-        # but actually, let's verify if we need it.
-        # discord_manager calls it with start_node_id.
-        
-        # Hack: Validating start_node_id behavior
-        if start_node_id:
-            # We filter nodes_list to ensure we find this node? 
-            # Or we modify GraphExecutor.execute to accept start_node_id.
-            # Modify GraphExecutor.execute is cleaner. But I already wrote it.
-            # I will modify GraphExecutor in next step.
-            pass
-            
         success = executor.execute(nodes_list, context, start_node_id=start_node_id)
         return success
 

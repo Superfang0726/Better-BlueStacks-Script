@@ -512,7 +512,6 @@
             </div>
         </div>
     </div>
-    </div>
 
     <div id="main-layout">
         <!-- Main Header -->
@@ -620,7 +619,6 @@
                 graph.setDirtyCanvas(true, true);
             }
         }
-        window.addEventListener("resize", resize);
         window.addEventListener("resize", resize);
         setTimeout(resize, 100);
 
@@ -1887,7 +1885,7 @@
                 })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.status === 'ok') {
+                    if (data.status === 'success') {
                         showToast('Settings saved!');
                         closeGeneralSettings();
                     } else {
@@ -1957,7 +1955,6 @@
                 })
                 .catch(e => showToast("Error: " + e, 'error'));
         }
-    </script>
     </script>
 </body>
 

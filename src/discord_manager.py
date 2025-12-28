@@ -185,8 +185,6 @@ def run_script(actions, mode='graph'):
             shared.command_hooks[cmd_name] = make_runner(node_id, actions)
             log_message(f"Registered Slash Command: /{cmd_name} -> Node {node_id}")
 
-
-
         for node in wait_nodes:
             cmd_name = node['properties'].get('command_name', 'continue').strip()
             if not cmd_name: cmd_name = 'continue'

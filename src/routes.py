@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, send_file
 import threading
 import os
 import time
@@ -87,24 +87,6 @@ def configure_routes(app):
             
         return jsonify({"status": "success", "message": "Stopping script..."})
 
-    @app.route('/api/register_commands', methods=['POST'])
-    def register_commands():
-        """
-        API to manually trigger Discord command registration.
-        """
-        data = request.json
-        if not data:
-            return jsonify({"status": "error", "message": "No data provided"}), 400
-        
-        nodes_list = data.get("nodes", [])
-        
-        from discord_manager import register_commands_logic
-        success = register_commands_logic(nodes_list)
-        
-        if success:
-            return jsonify({"status": "success", "message": "Commands registered successfully."})
-        else:
-            return jsonify({"status": "error", "message": "Failed to register commands. Check server logs."}), 500
 
 
     @app.route('/shutdown', methods=['POST'])
